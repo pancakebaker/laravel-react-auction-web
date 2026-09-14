@@ -1,0 +1,43 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use App\Support\TenantContext;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
+use RuntimeException;
+
+class DemoAdminSeeder extends Seeder
+{
+    public const DEFAULT_EMAIL = 'admin@example.test';
+
+    public const DEFAULT_NAME = 'Demo Admin';
+
+    public const DEFAULT_PASSWORD = 'password';
+
+    /**
+     * Create or update a deterministic development administrator for local demos.
+     */
+    public function run(): void
+    {
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('DemoAdminSeeder may only run in the local or testing environment.');
+        }
+
+        $user = User::query()->firstOrNew([
+            'email' => env('DEMO_ADMIN_EMAIL', self::DEFAULT_EMAIL),
+        ]);
+
+        $user->fill([
+            'name' => env('DEMO_ADMIN_NAME', self::DEFAULT_NAME),
+            'password' => env('DEMO_ADMIN_PASSWORD', self::DEFAULT_PASSWORD),
+        ]);
+
+        $user->forceFill([
+            'is_admin' => true,
+            'tenant_id' => app(TenantContext::class)->id(),
+            'subject_id' => $user->subject_id ?: (string) Str::uuid(),
+        ])->save();
+    }
+}
