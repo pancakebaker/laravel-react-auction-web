@@ -39,6 +39,8 @@ jobs:
         run: vendor/bin/pint --test
       - name: Run frontend tests
         run: npm test
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: '1'
       - name: Run ESLint
         run: npm run lint
       - name: Run TypeScript check
