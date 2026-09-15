@@ -65,6 +65,35 @@ Generate the Laravel application key:
 php artisan key:generate
 ```
 
+Create the local SQLite database file:
+
+```bash
+touch database/database.sqlite
+```
+
+On Windows PowerShell, use:
+
+```powershell
+New-Item -ItemType File -Path database/database.sqlite -Force
+```
+
+Run the migrations and seed the local/demo data:
+
+```bash
+php artisan migrate --seed
+```
+
+The seeders create the local demo administrator, bidder accounts, and CMS
+pages and FAQs used by the local demo experience. To reset a local development
+database, you can run:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+This deletes all existing database data, so use it only when you intentionally
+want to reset a local development database.
+
 Install JavaScript dependencies:
 
 ```bash
