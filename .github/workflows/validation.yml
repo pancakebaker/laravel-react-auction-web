@@ -41,6 +41,8 @@ jobs:
         run: npm test
         env:
           LARAVEL_BYPASS_ENV_CHECK: '1'
+      - name: Validate Bidding API contract
+        run: npm run contract:check
       - name: Run ESLint
         run: npm run lint
       - name: Run TypeScript check

@@ -1,0 +1,641 @@
+openapi: 3.1.0
+info:
+  title: DBAP Bidding Service API
+  version: 1.0.0
+  description: >-
+    Normalized documentation of the current Bidding Service HTTP boundary.
+    The document describes existing paths; it does not introduce a /v1 URL.
+servers:
+  - url: http://localhost:5000
+    description: Local development placeholder
+tags:
+  - name: Auctions
+  - name: System administration
+  - name: Internal
+paths:
+  /api/auctions/:
+    get:
+      tags: [Auctions]
+      operationId: getAuctions
+      security: [{ biddingReadToken: [] }]
+      responses:
+        "200":
+          description: Auctions visible to the authenticated tenant.
+          content:
+            application/json:
+              schema:
+                {
+                  type: array,
+                  items: { $ref: "#/components/schemas/AuctionSummary" },
+                }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+    post:
+      tags: [Auctions]
+      operationId: createAuction
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/CreateAuctionRequest" } },
+          }
+      responses:
+        "201":
+          description: Auction created.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/AuctionDetail" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/auctions:
+    post:
+      tags: [Auctions]
+      operationId: createAuctionWithoutTrailingSlash
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/CreateAuctionRequest" } },
+          }
+      responses:
+        "201":
+          description: Auction created.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/AuctionDetail" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/auctions/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/AuctionId" }
+    get:
+      tags: [Auctions]
+      operationId: getAuction
+      security: [{ biddingReadToken: [] }]
+      responses:
+        "200":
+          description: Auction detail.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/AuctionDetail" } },
+            }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Auctions]
+      operationId: updateAuction
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/UpdateAuctionRequest" } },
+          }
+      responses:
+        "200":
+          description: Auction updated.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/AuctionDetail" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      tags: [Auctions]
+      operationId: deleteAuction
+      security: [{ humanOrBffToken: [] }]
+      responses:
+        "204": { description: Auction deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/auctions/{id}/bids:
+    parameters:
+      - { $ref: "#/components/parameters/AuctionId" }
+    get:
+      tags: [Auctions]
+      operationId: getAuctionBids
+      security: [{ biddingReadToken: [] }]
+      responses:
+        "200":
+          description: Accepted bids for the auction.
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Bid" },
+                    },
+                },
+            }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Auctions]
+      operationId: placeBid
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/PlaceBidRequest" } },
+          }
+      responses:
+        "201":
+          description: Bid accepted.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/PlaceBidResponse" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/auctions/{id}/buy-now:
+    parameters:
+      - { $ref: "#/components/parameters/AuctionId" }
+    post:
+      tags: [Auctions]
+      operationId: buyNow
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: false
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/BuyNowRequest" } },
+          }
+      responses:
+        "201":
+          description: Buy Now purchase accepted.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/BuyNowResponse" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/auctions/{id}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/AuctionId" }
+    post:
+      tags: [Auctions]
+      operationId: cancelAuction
+      security: [{ humanOrBffToken: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/CancelAuctionRequest" } },
+          }
+      responses:
+        "200":
+          description: Auction cancelled.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/AuctionDetail" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/system/tenants:
+    get:
+      tags: [System administration]
+      operationId: getTenants
+      security: [{ systemAdministrator: [] }]
+      responses:
+        "200":
+          description: Authoritative tenant states.
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/TenantStatus" },
+                    },
+                },
+            }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/system/tenants/{tenantId}/status:
+    parameters:
+      - { $ref: "#/components/parameters/TenantId" }
+    patch:
+      tags: [System administration]
+      operationId: changeTenantStatus
+      security: [{ systemAdministrator: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  { $ref: "#/components/schemas/ChangeTenantStatusRequest" },
+              },
+          }
+      responses:
+        "200":
+          description: Updated tenant state.
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/TenantStatus" } },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/system/tenants/{tenantId}/status-history:
+    parameters:
+      - { $ref: "#/components/parameters/TenantId" }
+    get:
+      tags: [System administration]
+      operationId: getTenantStatusHistory
+      security: [{ systemAdministrator: [] }]
+      parameters:
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
+          }
+        - {
+            name: beforeVersion,
+            in: query,
+            schema: { type: integer, minimum: 1 },
+          }
+      responses:
+        "200":
+          description: Descending tenant status history.
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: array,
+                      items:
+                        { $ref: "#/components/schemas/TenantStatusTransition" },
+                    },
+                },
+            }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /internal/live-feed/access:
+    post:
+      tags: [Internal]
+      operationId: evaluateLiveFeedAccess
+      security: [{ liveFeedService: [] }]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema: { $ref: "#/components/schemas/LiveFeedAccessRequest" },
+              },
+          }
+      responses:
+        "200":
+          description: The auction may be exposed to Live Feed.
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      required: [allowed],
+                      properties: { allowed: { const: true } },
+                    },
+                },
+            }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+components:
+  parameters:
+    AuctionId:
+      {
+        name: id,
+        in: path,
+        required: true,
+        schema: { type: string, format: uuid },
+      }
+    TenantId:
+      {
+        name: tenantId,
+        in: path,
+        required: true,
+        schema: { type: string, format: uuid },
+      }
+  securitySchemes:
+    biddingReadToken:
+      {
+        type: http,
+        scheme: bearer,
+        bearerFormat: JWT,
+        description: Server-issued tenant-bound read token.,
+      }
+    humanOrBffToken:
+      {
+        type: http,
+        scheme: bearer,
+        bearerFormat: JWT,
+        description: Human or Laravel BFF token with tenant authority.,
+      }
+    systemAdministrator:
+      {
+        type: http,
+        scheme: bearer,
+        bearerFormat: JWT,
+        description: Global SystemAdministrator identity.,
+      }
+    liveFeedService:
+      {
+        type: http,
+        scheme: bearer,
+        bearerFormat: JWT,
+        description: Dedicated Live Feed service JWT.,
+      }
+  responses:
+    BadRequest:
+      {
+        description: Invalid request,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+    Unauthorized:
+      {
+        description: Authentication failure,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+    Forbidden:
+      {
+        description: Authenticated but not permitted or tenant status disallows the operation,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+    NotFound:
+      {
+        description: Missing or foreign resource,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+    Conflict:
+      {
+        description: Optimistic-concurrency or state conflict,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+    Unavailable:
+      {
+        description: Dependency or system failure,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/ApiError" } },
+          },
+      }
+  schemas:
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        { code: { type: string }, message: { type: string }, details: {} }
+    AuctionSummary:
+      type: object
+      required:
+        [
+          id,
+          title,
+          startingPrice,
+          saleMode,
+          minimumBidIncrement,
+          minimumValidBid,
+          status,
+          startTimeUtc,
+          endTimeUtc,
+          version,
+          tenantId,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        startingPrice: { type: number }
+        saleMode:
+          { type: string, enum: [AuctionOnly, BuyNowOnly, AuctionAndBuyNow] }
+        buyNowPrice: { type: [number, "null"] }
+        minimumBidIncrement: { type: number }
+        currentBidAmount: { type: [number, "null"] }
+        currentBidderId: { type: [string, "null"] }
+        finalWinnerId: { type: [string, "null"] }
+        finalPrice: { type: [number, "null"] }
+        minimumValidBid: { type: number }
+        status: { type: string, enum: [Scheduled, Open, Closed, Cancelled] }
+        startTimeUtc: { type: string, format: date-time }
+        endTimeUtc: { type: string, format: date-time }
+        version: { type: integer, minimum: 1 }
+        tenantId: { type: string, format: uuid }
+    AuctionDetail:
+      allOf:
+        - { $ref: "#/components/schemas/AuctionSummary" }
+        - type: object
+          required: [description, createdAtUtc, updatedAtUtc]
+          properties:
+            description: { type: string }
+            createdAtUtc: { type: string, format: date-time }
+            updatedAtUtc: { type: string, format: date-time }
+    Bid:
+      type: object
+      required: [id, auctionId, bidderId, amount, createdAtUtc]
+      properties:
+        id: { type: string, format: uuid }
+        auctionId: { type: string, format: uuid }
+        bidderId: { type: string }
+        amount: { type: number }
+        createdAtUtc: { type: string, format: date-time }
+    CreateAuctionRequest:
+      type: object
+      required:
+        [
+          title,
+          description,
+          saleMode,
+          startingPrice,
+          minimumBidIncrement,
+          startTimeUtc,
+          endTimeUtc,
+        ]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        saleMode:
+          { type: string, enum: [AuctionOnly, BuyNowOnly, AuctionAndBuyNow] }
+        startingPrice: { type: number }
+        minimumBidIncrement: { type: number }
+        buyNowPrice: { type: [number, "null"] }
+        startTimeUtc: { type: string, format: date-time }
+        endTimeUtc: { type: string, format: date-time }
+    UpdateAuctionRequest:
+      allOf:
+        - { $ref: "#/components/schemas/CreateAuctionRequest" }
+        - type: object
+          required: [version]
+          properties: { version: { type: integer, minimum: 1 } }
+    CancelAuctionRequest:
+      type: object
+      required: [version]
+      properties: { version: { type: integer, minimum: 1 } }
+    PlaceBidRequest:
+      type: object
+      required: [amount]
+      properties:
+        {
+          amount: { type: number, minimum: 0 },
+          bidderId: { type: [string, "null"], deprecated: true },
+        }
+    BuyNowRequest:
+      type: object
+      properties: { bidderId: { type: [string, "null"], deprecated: true } }
+    PlaceBidResponse:
+      type: object
+      required:
+        [
+          bidId,
+          auctionId,
+          bidderId,
+          amount,
+          currentBidAmount,
+          currentBidderId,
+          nextMinimumBid,
+          auctionVersion,
+          createdAtUtc,
+          correlationId,
+        ]
+      properties:
+        bidId: { type: string, format: uuid }
+        auctionId: { type: string, format: uuid }
+        bidderId: { type: string }
+        amount: { type: number }
+        currentBidAmount: { type: number }
+        currentBidderId: { type: string }
+        nextMinimumBid: { type: number }
+        auctionVersion: { type: integer, minimum: 1 }
+        createdAtUtc: { type: string, format: date-time }
+        correlationId: { type: string }
+    BuyNowResponse:
+      type: object
+      required:
+        [
+          auctionId,
+          bidderId,
+          finalPrice,
+          auctionVersion,
+          purchasedAtUtc,
+          correlationId,
+        ]
+      properties:
+        auctionId: { type: string, format: uuid }
+        bidderId: { type: string }
+        finalPrice: { type: number }
+        auctionVersion: { type: integer, minimum: 1 }
+        purchasedAtUtc: { type: string, format: date-time }
+        correlationId: { type: string }
+    TenantStatus:
+      type: object
+      required: [tenantId, name, status, version, updatedAtUtc]
+      properties:
+        tenantId: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [Active, Suspended, Disabled] }
+        version: { type: integer, minimum: 1 }
+        updatedAtUtc: { type: string, format: date-time }
+    ChangeTenantStatusRequest:
+      type: object
+      required: [status, expectedVersion]
+      properties:
+        status: { type: string, enum: [Active, Suspended, Disabled] }
+        expectedVersion: { type: integer, minimum: 1 }
+    TenantStatusTransition:
+      type: object
+      required:
+        [
+          transitionId,
+          tenantId,
+          previousStatus,
+          currentStatus,
+          tenantVersion,
+          changedAtUtc,
+          changedBySubject,
+          correlationId,
+        ]
+      properties:
+        transitionId: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        previousStatus: { type: string, enum: [Active, Suspended, Disabled] }
+        currentStatus: { type: string, enum: [Active, Suspended, Disabled] }
+        tenantVersion: { type: integer, minimum: 1 }
+        changedAtUtc: { type: string, format: date-time }
+        changedBySubject: { type: string }
+        correlationId: { type: string }
+    LiveFeedAccessRequest:
+      type: object
+      required: [auctionId]
+      properties: { auctionId: { type: string, format: uuid } }
