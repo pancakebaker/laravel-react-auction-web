@@ -1,0 +1,47 @@
+name: Laravel React validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, sqlite3, pdo_sqlite
+          coverage: none
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Generate Laravel application key
+        run: php artisan key:generate --force
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Run Laravel tests
+        run: php artisan test --without-tty
+      - name: Check PHP formatting
+        run: vendor/bin/pint --test
+      - name: Run frontend tests
+        run: npm test
+      - name: Run ESLint
+        run: npm run lint
+      - name: Run TypeScript check
+        run: npm run typecheck
+      - name: Build frontend assets
+        run: npm run build
+      - name: Check frontend formatting
+        run: npm run format:check
