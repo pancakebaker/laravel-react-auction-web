@@ -1,5 +1,7 @@
 # Laravel React Auction Web
 
+[![CI](https://github.com/pancakebaker/laravel-react-auction-web/actions/workflows/validation.yml/badge.svg)](https://github.com/pancakebaker/laravel-react-auction-web/actions/workflows/validation.yml)
+
 This repository contains the Laravel + React tenant-facing web client for the
 **Distributed Bidding Auction Platform**. It is the first extracted client
 repository from the original split-source monorepo.
@@ -75,6 +77,10 @@ The main service settings are `BIDDING_SERVICE_URL` and
 Socket.IO. `TENANT_ID` identifies the tenant represented by this Laravel
 installation. Keep signing key paths server-side and do not expose credentials
 through Vite variables.
+
+Each deployment represents one configured tenant. Separate customer domains
+can run separate Laravel installations with different server-side `TENANT_ID`
+values; tenant authority is not selected from arbitrary browser input.
 
 ## Start the Client
 
@@ -195,6 +201,16 @@ payloads/Live Feed projections carry tenant identity. Bidding Service command
 authorization and tenant status enforcement remain explicit policy boundaries;
 ClientApplication admission and external OIDC remain deferred.
 
-## License
+## Related repositories
 
-This project is licensed under the MIT License.
+- [Bidding Service](https://github.com/pancakebaker/dotnet-bidding-service) owns authoritative auction, bid, tenant, and Buy Now decisions.
+- [Live Feed](https://github.com/pancakebaker/nodejs-live-feed) projects integration events to Socket.IO clients.
+- [Operations Portal](https://github.com/pancakebaker/dotnet-blazor-operations-portal) provides the global operations control plane.
+- [DBAP Platform Infrastructure](https://github.com/pancakebaker/docker-dbap-platform) provides development PostgreSQL, RabbitMQ, and Redis.
+- [Historical integrated monorepo](https://github.com/pancakebaker/distributed-bidding-auction-platform) preserves the original platform snapshot.
+
+## Status and licensing
+
+This is a functioning architecture and portfolio/demo client, not a complete
+production-hardening package. No license file is currently included in this
+extracted repository; licensing should be made explicit before redistribution.
