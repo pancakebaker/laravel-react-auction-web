@@ -32,7 +32,9 @@
 }
 
 .public-navigation-brand,
-.public-navigation-links a {
+.public-navigation-links a,
+.public-navigation-links > span,
+.public-navigation-link-button {
     color: inherit;
     font-weight: 800;
     text-decoration: none;
@@ -48,21 +50,63 @@
     gap: 14px;
     justify-content: flex-end;
     min-width: 0;
-    overflow-x: auto;
     padding-bottom: 2px;
-    scrollbar-width: thin;
 }
 
-.public-navigation-links a {
+.public-navigation-links a,
+.public-navigation-links > span,
+.public-navigation-link-button {
+    align-items: center;
     color: #c8d8d2;
+    display: inline-flex;
     flex: 0 0 auto;
+    line-height: 1.25;
     padding: 6px 0;
     white-space: nowrap;
 }
 
+.public-navigation-logout {
+    display: flex;
+    margin: 0;
+}
+
+.public-navigation-link-button {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.public-navigation-toggle {
+    align-items: center;
+    background: transparent;
+    border: 1px solid #6f887e;
+    border-radius: 6px;
+    color: #f4f8f3;
+    display: none;
+    gap: 8px;
+    font-weight: 800;
+    padding: 8px 10px;
+}
+
+.public-navigation-toggle-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
 .public-navigation-brand:hover,
-.public-navigation-links a:hover {
+.public-navigation-links a:hover,
+.public-navigation-link-button:hover {
     color: #ffffff;
+}
+
+.public-navigation-toggle:hover {
+    background: #20352e;
+}
+
+.public-navigation a:focus-visible,
+.public-navigation button:focus-visible {
+    outline: 2px solid #b8e0cd;
+    outline-offset: 3px;
 }
 
 button,
@@ -568,14 +612,46 @@ button:disabled {
     }
 
     .public-navigation-inner {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .public-navigation-brand {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .public-navigation-toggle {
+        display: inline-flex;
+        flex: 0 0 auto;
     }
 
     .public-navigation-links {
+        align-items: stretch;
+        display: none;
+        flex: 1 0 100%;
+        flex-direction: column;
+        gap: 0;
         justify-content: flex-start;
-        max-width: 100%;
+        max-width: none;
+        overflow: visible;
+        padding: 8px 0 2px;
+        width: 100%;
+    }
+
+    .public-navigation-links.is-open {
+        display: flex;
+    }
+
+    .public-navigation-links a,
+    .public-navigation-links > span,
+    .public-navigation-link-button {
+        min-height: 40px;
+        padding: 9px 4px;
+        width: 100%;
+    }
+
+    .public-navigation-logout {
         width: 100%;
     }
 

@@ -71,6 +71,46 @@ class PublicNavigationTest extends TestCase
             ->assertSee(route('cms.pages.show', $newlyPublished), false);
     }
 
+    public function test_guest_navigation_has_accessible_collapsible_menu_and_sign_in(): void
+    {
+        $this->withoutVite();
+
+        $this->get('/auctions')
+            ->assertOk()
+            ->assertSee('data-public-navigation-toggle', false)
+            ->assertSee('aria-controls="public-navigation-menu"', false)
+            ->assertSee('aria-expanded="false"', false)
+            ->assertSee('Toggle navigation', false)
+            ->assertSee('>Sign in<', false)
+            ->assertDontSee('Log out');
+    }
+
+    public function test_authenticated_bidder_navigation_shows_user_and_post_logout(): void
+    {
+        $this->withoutVite();
+        $bidder = User::factory()->create(['name' => 'Local Bidder']);
+
+        $this->actingAs($bidder)->get('/auctions')
+            ->assertOk()
+            ->assertSee('Local Bidder')
+            ->assertSee('>Log out<', false)
+            ->assertSee('name="_token"', false)
+            ->assertDontSee('>Sign in<', false);
+    }
+
+    public function test_authenticated_admin_navigation_shows_admin_name_and_post_logout(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->admin()->create(['name' => 'Local Admin']);
+
+        $this->actingAs($admin)->get('/auctions')
+            ->assertOk()
+            ->assertSee('Local Admin')
+            ->assertSee('>Log out<', false)
+            ->assertSee('name="_token"', false)
+            ->assertDontSee('>Sign in<', false);
+    }
+
     public function test_navigation_cache_is_invalidated_when_a_published_page_becomes_draft_or_is_deleted(): void
     {
         $this->withoutVite();
