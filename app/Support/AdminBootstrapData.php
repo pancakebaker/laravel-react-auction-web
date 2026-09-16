@@ -77,7 +77,7 @@ class AdminBootstrapData
      *
      * @return array<string, mixed>|null
      */
-    private static function activityReport(
+    public static function activityReport(
         BiddingServiceClient $biddingService,
         ?string $correlationId,
     ): ?array {

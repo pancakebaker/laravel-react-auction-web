@@ -11,6 +11,10 @@ describe('live-feed Socket.IO transport contract', () => {
             winnerSelected: 'winner:selected',
             subscribe: 'auction:subscribe',
             unsubscribe: 'auction:unsubscribe',
+            activitySubscribe: 'admin:activity:subscribe',
+            activityUnsubscribe: 'admin:activity:unsubscribe',
+            activityDelta: 'admin:activity:delta',
+            subscriptionError: 'subscription:error',
         });
     });
 });

@@ -170,3 +170,14 @@ export type LiveAuctionCancelled = {
     occurredAtUtc: string;
     correlationId: string | null;
 };
+
+/** Tenant-scoped live activity delta for the admin dashboard. */
+export type LiveAdminActivityDelta = {
+    eventId: string;
+    eventType: 'BidAccepted' | 'AuctionPurchased';
+    tenantId: string;
+    auctionId: string;
+    occurredAtUtc: string;
+    aggregateVersion: number;
+    payload: Record<string, unknown>;
+};

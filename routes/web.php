@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminActivityReportController;
 use App\Http\Controllers\Admin\AdminAuctionController;
 use App\Http\Controllers\Admin\AdminAuditLogController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminExportController;
 use App\Http\Controllers\Admin\AdminFaqController;
+use App\Http\Controllers\Admin\AdminLiveFeedSessionController;
 use App\Http\Controllers\Admin\AdminPageController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\AuctionCommandController;
@@ -48,6 +50,8 @@ Route::middleware(['auth', 'can:access-admin'])
     ->name('admin.')
     ->group(function (): void {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
+        Route::post('/live-feed/session', AdminLiveFeedSessionController::class)->name('live-feed.session');
+        Route::get('/activity-report', AdminActivityReportController::class)->name('activity-report');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])
             ->name('audit-logs.index');

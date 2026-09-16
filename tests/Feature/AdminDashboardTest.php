@@ -95,4 +95,31 @@ class AdminDashboardTest extends TestCase
         $response->assertDontSee('phase13-sensitive-database-path');
         $response->assertDontSee('phase13-sensitive-queue-connection');
     }
+
+    public function test_admin_can_refresh_activity_report_without_exposing_upstream_details(): void
+    {
+        $this->mock(BiddingServiceClient::class, function ($mock): void {
+            $mock->shouldReceive('getActivityReport')
+                ->once()
+                ->with(7, null)
+                ->andReturn(response()->json([
+                    'from' => '2026-09-10',
+                    'to' => '2026-09-16',
+                    'days' => 7,
+                    'bids' => [['date' => '2026-09-10', 'count' => 0]],
+                    'purchases' => [['date' => '2026-09-10', 'count' => 0]],
+                ]));
+        });
+
+        $response = $this->actingAs(User::factory()->admin()->create())
+            ->getJson('/admin/activity-report');
+
+        $response->assertOk()->assertExactJson([
+            'from' => '2026-09-10',
+            'to' => '2026-09-16',
+            'days' => 7,
+            'bids' => [['date' => '2026-09-10', 'count' => 0]],
+            'purchases' => [['date' => '2026-09-10', 'count' => 0]],
+        ]);
+    }
 }

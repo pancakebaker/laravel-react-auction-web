@@ -7,4 +7,8 @@ export const liveFeedSocketEvents = {
     auctionCancelled: 'auction:cancelled',
     subscribe: 'auction:subscribe',
     unsubscribe: 'auction:unsubscribe',
+    activitySubscribe: 'admin:activity:subscribe',
+    activityUnsubscribe: 'admin:activity:unsubscribe',
+    activityDelta: 'admin:activity:delta',
+    subscriptionError: 'subscription:error',
 } as const;

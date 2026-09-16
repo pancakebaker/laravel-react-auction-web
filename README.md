@@ -155,6 +155,25 @@ Socket.IO. `TENANT_ID` identifies the tenant represented by this Laravel
 installation. Keep signing key paths server-side and do not expose credentials
 through Vite variables.
 
+Laravel admin access to the Live Feed service uses a separate short-lived
+SystemAdministrator assertion. Configure `LIVE_FEED_ADMIN_ISSUER`,
+`LIVE_FEED_ADMIN_AUDIENCE`, `LIVE_FEED_ADMIN_KEY_ID`,
+`LIVE_FEED_ADMIN_PRIVATE_KEY_PATH`, and the short `LIVE_FEED_ADMIN_TTL_SECONDS`
+value from `.env.example`; these settings are deliberately separate from the
+Bidding Service JWT issuer. The private key is kept only by Laravel at
+`storage/keys/system-admin-private.pem`. The matching public key must be
+provisioned in the Live Feed repository at its configured
+`config/system-admin-public.pem` path (or its equivalent `kid=path` registry).
+Never copy or commit the Laravel private key.
+
+An authenticated Laravel administrator can establish the Node-owned
+`live_feed_admin` HttpOnly session through `POST /admin/live-feed/session`.
+Laravel performs the token exchange server-side and returns only a safe browser
+handoff URL; Node issues the cookie. This prerequisite does not yet subscribe
+the dashboard to admin activity events. Production deployments must provision
+the matching public key and private key through their secret/key-management
+process rather than relying on local development values.
+
 Each deployment represents one configured tenant. Separate customer domains
 can run separate Laravel installations with different server-side `TENANT_ID`
 values; tenant authority is not selected from arbitrary browser input.
