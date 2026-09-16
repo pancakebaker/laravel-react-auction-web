@@ -1,7 +1,7 @@
 /**
  * Displays the public auction discovery page.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getAuctions } from '../../api';
 import type { AuctionSummary } from '../../types';
 import { Shell, StateMessage } from '../components/PublicComponents';
@@ -17,17 +17,23 @@ export function AuctionListPage() {
     const [error, setError] = useState<string | null>(null);
     const now = useNow();
 
-    useEffect(() => {
-        getAuctions()
+    const loadAuctions = useCallback(() => {
+        setLoading(true);
+        setError(null);
+
+        return getAuctions()
             .then((items) => {
                 setAuctions(items);
-                setError(null);
             })
             .catch((caught) =>
                 setError(caught instanceof Error ? caught.message : 'Unable to load auctions.'),
             )
             .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        void loadAuctions();
+    }, [loadAuctions]);
 
     return (
         <Shell>
@@ -46,7 +52,51 @@ export function AuctionListPage() {
                     message="Fetching current auction state from the Bidding API."
                 />
             )}
-            {error && <StateMessage title="Bidding API unavailable" message={error} tone="error" />}
+            {error && (
+                <section
+                    aria-labelledby="auction-service-unavailable-title"
+                    className="state-message state-unavailable"
+                    role="alert"
+                >
+                    <div className="state-message-copy">
+                        <p className="eyebrow">Service status</p>
+                        <h2 id="auction-service-unavailable-title">Bidding API unavailable</h2>
+                        <p>
+                            The auction client is running, but it cannot currently reach the Bidding
+                            Service.
+                        </p>
+                    </div>
+                    <div className="state-message-details">
+                        <div>
+                            <strong>Possible causes</strong>
+                            <ul>
+                                <li>The Bidding Service is not running.</li>
+                                <li>The configured service URL is incorrect.</li>
+                                <li>Required server-side signing configuration is unavailable.</li>
+                                <li>The service may still be starting.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong>Next steps</strong>
+                            <ul>
+                                <li>Start or check the Bidding Service.</li>
+                                <li>Verify the local service configuration.</li>
+                                <li>Retry after the backend becomes available.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p className="state-message-technical">
+                        <span>Technical detail:</span> {error}
+                    </p>
+                    <button
+                        className="primary-button"
+                        onClick={() => void loadAuctions()}
+                        type="button"
+                    >
+                        Retry
+                    </button>
+                </section>
+            )}
 
             <section className="auction-grid" aria-label="Auction list">
                 {auctions.map((auction) => (

@@ -917,10 +917,28 @@ describe('auction UI', () => {
         expect((await screen.findAllByText('Offline')).length).toBeGreaterThan(0);
         expect(screen.getByRole('button', { name: 'Auction closed' })).toBeDisabled();
     });
-    it('API unavailable state renders cleanly', async () => {
-        vi.mocked(fetch).mockRejectedValue(new Error('network down'));
+    it('API unavailable state explains recovery and retries the load', async () => {
+        vi.mocked(fetch)
+            .mockRejectedValueOnce(new Error('network down'))
+            .mockResolvedValueOnce(await json(auctions));
         renderAt('/auctions');
 
         expect(await screen.findByText('Bidding API unavailable')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'The auction client is running, but it cannot currently reach the Bidding Service.',
+            ),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Technical detail:')).toBeInTheDocument();
+        expect(
+            screen.getByText('Bidding API is unavailable. Check that the .NET service is running.'),
+        ).toBeInTheDocument();
+        expect(screen.getByText('The Bidding Service is not running.')).toBeInTheDocument();
+        expect(screen.getByText('Start or check the Bidding Service.')).toBeInTheDocument();
+
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Retry' }));
+
+        expect(await screen.findByText('MacBook Pro')).toBeInTheDocument();
+        expect(fetch).toHaveBeenCalledTimes(2);
     });
 });
