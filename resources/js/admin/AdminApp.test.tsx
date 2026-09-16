@@ -58,6 +58,10 @@ describe('admin UI', () => {
                             { label: 'Total users', value: 12 },
                             { label: 'Published pages', value: 2 },
                             { label: 'Audit events today', value: 1 },
+                            { label: 'Environment', value: 'local' },
+                            { label: 'Database', value: 'sqlite' },
+                            { label: 'Cache', value: 'database' },
+                            { label: 'Queue', value: 'database' },
                         ],
                         recentAuditLogs: [
                             {
@@ -80,6 +84,19 @@ describe('admin UI', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'System Information' })).toBeInTheDocument();
+        expect(screen.getByText('local')).toBeInTheDocument();
+        expect(screen.queryByText('Runtime')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Log out' }).closest('form')).toHaveClass(
+            'admin-sidebar-logout',
+        );
+        expect(screen.getByRole('button', { name: 'Log out' }).closest('aside')).toHaveAttribute(
+            'aria-label',
+            'Admin navigation',
+        );
+        expect(screen.getByRole('link', { name: 'View auctions' })).toBeInTheDocument();
+        expect(screen.queryByText('•')).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Pages' })).toHaveAttribute('href', '/admin/pages');
         expect(screen.getByRole('link', { name: 'FAQs' })).toHaveAttribute('href', '/admin/faqs');
         expect(screen.getByRole('link', { name: 'Audit Log' })).toHaveAttribute(

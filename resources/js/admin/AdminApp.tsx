@@ -543,12 +543,28 @@ function AdminSidebar({
                         target={item.target}
                     >
                         <span aria-hidden="true" className="admin-nav-icon">
-                            •
+                            <AdminIcon name={navigationIcon(item.label)} />
                         </span>
                         {item.label}
                     </a>
                 ))}
             </nav>
+            <form action="/logout" className="admin-sidebar-logout" method="post">
+                <input
+                    name="_token"
+                    type="hidden"
+                    value={
+                        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                            ?.content ?? ''
+                    }
+                />
+                <button type="submit">
+                    <span aria-hidden="true" className="admin-nav-icon">
+                        <AdminIcon name="logout" />
+                    </span>
+                    Log out
+                </button>
+            </form>
             <div className="admin-sidebar-footer">Global administration</div>
         </aside>
     );
@@ -618,21 +634,176 @@ function DashboardPage({
     metrics: DashboardMetric[];
     recentAuditLogs: AuditLogRow[];
 }) {
+    const primaryMetrics = metrics.filter((metric) => !isSystemMetric(metric.label));
+    const systemMetrics = metrics.filter((metric) => isSystemMetric(metric.label));
+
     return (
         <>
             <section className="admin-card-grid" aria-label="Application metrics">
-                {metrics.map((metric) => (
-                    <article className="admin-metric-card" key={metric.label}>
-                        <span>{metric.label}</span>
-                        <strong>{metric.value}</strong>
+                {primaryMetrics.map((metric) => (
+                    <article
+                        className={`admin-metric-card admin-metric-${metricTone(metric.label)}`}
+                        key={metric.label}
+                    >
+                        <div className="admin-metric-body">
+                            <div className="admin-metric-icon" aria-hidden="true">
+                                <AdminIcon name={metricIcon(metric.label)} />
+                            </div>
+                            <strong>{metric.value}</strong>
+                        </div>
+                        <div className="admin-metric-label">{metricLabel(metric.label)}</div>
                     </article>
                 ))}
             </section>
+            <SystemInformation metrics={systemMetrics} />
             <section className="admin-dashboard-grid">
                 <AuditSummary title="Recent CMS changes" rows={recentAuditLogs} />
                 <ActionCounts counts={auditActionCounts} />
             </section>
         </>
+    );
+}
+
+const systemMetricLabels = new Set(['Environment', 'Database', 'Cache', 'Queue']);
+
+function isSystemMetric(label: string): boolean {
+    return systemMetricLabels.has(label);
+}
+
+function SystemInformation({ metrics }: { metrics: DashboardMetric[] }) {
+    if (metrics.length === 0) {
+        return null;
+    }
+
+    return (
+        <section
+            className="admin-panel admin-system-panel"
+            aria-labelledby="system-information-title"
+        >
+            <div className="admin-panel-header">
+                <div>
+                    <p>Runtime</p>
+                    <h2 id="system-information-title">System Information</h2>
+                </div>
+                <span>{metrics.length} settings</span>
+            </div>
+            <dl className="admin-system-grid">
+                {metrics.map((metric) => (
+                    <div className="admin-system-row" key={metric.label}>
+                        <dt>{metricLabel(metric.label)}</dt>
+                        <dd>{metric.value}</dd>
+                    </div>
+                ))}
+            </dl>
+        </section>
+    );
+}
+
+type AdminIconName =
+    | 'activity'
+    | 'database'
+    | 'document'
+    | 'download'
+    | 'gavel'
+    | 'dashboard'
+    | 'help'
+    | 'history'
+    | 'layers'
+    | 'logout'
+    | 'server'
+    | 'shield'
+    | 'tasks'
+    | 'users';
+
+function navigationIcon(label: string): AdminIconName {
+    const icons: Record<string, AdminIconName> = {
+        Dashboard: 'dashboard',
+        Users: 'users',
+        Pages: 'document',
+        FAQs: 'help',
+        'Audit Log': 'history',
+        Exports: 'download',
+        'Auction Management': 'gavel',
+    };
+
+    return icons[label] ?? 'activity';
+}
+
+function metricIcon(label: string): AdminIconName {
+    const icons: Record<string, AdminIconName> = {
+        'Total users': 'users',
+        Administrators: 'shield',
+        'Total pages': 'document',
+        'Published pages': 'document',
+        'Draft pages': 'document',
+        'Published FAQs': 'help',
+        'Audit events today': 'activity',
+        Environment: 'server',
+        Database: 'database',
+        Cache: 'layers',
+        Queue: 'tasks',
+    };
+
+    return icons[label] ?? 'activity';
+}
+
+function metricTone(label: string): string {
+    const tones: Record<string, string> = {
+        'Total users': 'blue',
+        Administrators: 'green',
+        'Total pages': 'violet',
+        'Published pages': 'teal',
+        'Draft pages': 'amber',
+        'Published FAQs': 'coral',
+        'Audit events today': 'indigo',
+        Environment: 'slate',
+        Database: 'slate',
+        Cache: 'slate',
+        Queue: 'slate',
+    };
+
+    return tones[label] ?? 'slate';
+}
+
+function metricLabel(label: string): string {
+    return label.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function AdminIcon({ name }: { name: AdminIconName }) {
+    const paths: Record<AdminIconName, string> = {
+        activity: 'M3 12h4l2-8 4 16 2-8h6',
+        database:
+            'M4 5c0-1.1 3.6-2 8-2s8 .9 8 2-3.6 2-8 2-8-.9-8-2Zm0 0v7c0 1.1 3.6 2 8 2s8-.9 8-2V5m-16 7v7c0 1.1 3.6 2 8 2s8-.9 8-2v-7',
+        document: 'M6 3h8l4 4v14H6V3Zm8 0v5h4M9 13h6m-6 4h6',
+        download: 'M12 3v12m0 0 4-4m-4 4-4-4M5 21h14',
+        gavel: 'm14 5 5 5m-8-2 5 5m-8-2 5 5M4 20l7-7m-3-8 4 4-3 3-4-4 3-3Zm6 6 4-4 3 3-4 4-3-3Z',
+        dashboard: 'M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z',
+        help: 'M12 17h.01M9.1 9a3 3 0 1 1 5.2 2c-.9.9-2.3 1.3-2.3 3M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z',
+        history: 'M3 12a9 9 0 1 0 3-6.7M3 4v5h5m4-2v5l3 2',
+        layers: 'm12 3 8 4-8 4-8-4 8-4Zm-8 9 8 4 8-4M4 17l8 4 8-4',
+        logout: 'M10 5H5v14h5m5-4 4-3-4-3m4 3H9',
+        server: 'M4 4h16v6H4V4Zm0 10h16v6H4v-6Zm3-7v.01M7 17v.01M11 7h6m-6 10h6',
+        shield: 'M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Zm-3 9 2 2 4-4',
+        tasks: 'M5 5h14M5 12h14M5 19h14M2 5h.01M2 12h.01M2 19h.01',
+        users: 'M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1m6-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-1a3 3 0 0 0 0-6m4 16v-1a4 4 0 0 0-3-3.87',
+    };
+
+    return (
+        <svg
+            fill="none"
+            height="20"
+            viewBox="0 0 24 24"
+            width="20"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                d={paths[name]}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+            />
+        </svg>
     );
 }
 
