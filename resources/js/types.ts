@@ -13,7 +13,9 @@ export type AuctionSummary = {
     minimumBidIncrement: number;
     currentBidAmount: number | null;
     currentBidderId: string | null;
+    currentBidderLabel?: string | null;
     finalWinnerId: string | null;
+    finalWinnerLabel?: string | null;
     finalPrice: number | null;
     minimumValidBid: number;
     status: string;
@@ -62,6 +64,7 @@ export type Bid = {
     id: string;
     auctionId: string;
     bidderId: string;
+    bidderLabel?: string | null;
     amount: number;
     createdAtUtc: string;
 };

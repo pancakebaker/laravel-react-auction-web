@@ -1,7 +1,7 @@
 /**
  * Displays one auction, submits bids, and reconciles live-feed lifecycle events.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiClientError, buyNow, getAuction, getAuctionBids, placeBid } from '../../api';
 import { connectAuctionFeed } from '../../liveFeed';
@@ -9,6 +9,7 @@ import type { AuctionDetail, Bid, LiveStatus } from '../../types';
 import { LiveIndicator, LoadingOverlay, StateMessage } from '../components/PublicComponents';
 import { useNow } from '../hooks/useNow';
 import { navigateTo } from '../utils/navigation';
+import { bidderLabel, rememberBidderLabels, type BidderLabelMap } from '../utils/bidder';
 import {
     applyAuctionClosed,
     applyAuctionCancelled,
@@ -58,6 +59,8 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
     const [winner, setWinner] = useState<WinnerState | null>(null);
     const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true);
     const [loadingOverlayVisible, setLoadingOverlayVisible] = useState(false);
+    const [bidderLabels, setBidderLabels] = useState<BidderLabelMap>({});
+    const bidderLabelsRef = useRef<BidderLabelMap>({});
     const now = useNow();
     const auth = window.__AUTH_BOOTSTRAP__ ?? {
         authenticated: false,
@@ -66,6 +69,12 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
         isAdmin: false,
     };
     const auctionTenantId = auction?.tenantId;
+    const authSubjectId = auth.subjectId;
+    const authDisplayName = auth.displayName;
+
+    useEffect(() => {
+        bidderLabelsRef.current = bidderLabels;
+    }, [bidderLabels]);
 
     useEffect(() => {
         let showTimer: number | undefined;
@@ -91,6 +100,9 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
             .then(([auctionResponse, bidResponse]) => {
                 setAuction(auctionResponse);
                 setBids(bidResponse);
+                setBidderLabels((current) =>
+                    rememberBidderLabels(current, auctionResponse, bidResponse),
+                );
                 setLoadError(null);
                 setAmount(String(auctionResponse.minimumValidBid));
                 setWinner(
@@ -125,6 +137,13 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                     return;
                 }
 
+                setBidderLabels((current) => ({
+                    ...current,
+                    [event.bidderId.toLowerCase()]: bidderLabel(event.bidderId, current, {
+                        subjectId: authSubjectId,
+                        displayName: authDisplayName,
+                    }),
+                }));
                 setAuction((current) => {
                     if (!current || event.auctionVersion <= current.version) {
                         return current;
@@ -161,7 +180,13 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                 });
 
                 setActivity((current) =>
-                    [`${event.bidderId} bid ${formatMoney(event.amount)}`, ...current].slice(0, 4),
+                    [
+                        `${bidderLabel(event.bidderId, bidderLabelsRef.current, {
+                            subjectId: authSubjectId,
+                            displayName: authDisplayName,
+                        })} bid ${formatMoney(event.amount)}`,
+                        ...current,
+                    ].slice(0, 4),
                 );
             },
             onAuctionClosed: (event) => {
@@ -217,7 +242,13 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                     };
                 });
                 setActivity((current) =>
-                    [`Winner selected: ${event.winnerId}`, ...current].slice(0, 4),
+                    [
+                        `Winner selected: ${bidderLabel(event.winnerId, bidderLabelsRef.current, {
+                            subjectId: authSubjectId,
+                            displayName: authDisplayName,
+                        })}`,
+                        ...current,
+                    ].slice(0, 4),
                 );
             },
             onAuctionPurchased: (event) => {
@@ -225,6 +256,13 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                     return;
                 }
 
+                setBidderLabels((current) => ({
+                    ...current,
+                    [event.bidderId.toLowerCase()]: bidderLabel(event.bidderId, current, {
+                        subjectId: authSubjectId,
+                        displayName: authDisplayName,
+                    }),
+                }));
                 setAuction((current) => applyAuctionPurchased(current, event));
                 setWinner((current) => {
                     if (current && event.auctionVersion < current.auctionVersion) {
@@ -242,13 +280,16 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                 setFormMessage({
                     tone: 'error',
                     text:
-                        event.bidderId.toLowerCase() === auth.subjectId?.toLowerCase()
+                        event.bidderId.toLowerCase() === authSubjectId?.toLowerCase()
                             ? 'Your Buy Now purchase was completed.'
                             : 'This auction was purchased by another buyer.',
                 });
                 setActivity((current) =>
                     [
-                        `Purchased by ${event.bidderId}: ${formatMoney(event.finalPrice)}`,
+                        `Purchased by ${bidderLabel(event.bidderId, bidderLabelsRef.current, {
+                            subjectId: authSubjectId,
+                            displayName: authDisplayName,
+                        })}: ${formatMoney(event.finalPrice)}`,
                         ...current,
                     ].slice(0, 4),
                 );
@@ -270,7 +311,7 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
         return () => {
             socket.disconnect();
         };
-    }, [auctionId, auctionTenantId, auth.subjectId]);
+    }, [auctionId, auctionTenantId, authDisplayName, authSubjectId]);
 
     const minimumBid = auction?.minimumValidBid ?? 0;
     const countdown = auction ? getCountdown(auction, now) : '';
@@ -466,9 +507,9 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                             </strong>
                             <small>
                                 {auction.status === 'Closed' && auction.finalWinnerId
-                                    ? `Winner: ${auction.finalWinnerId}`
+                                    ? `Winner: ${bidderLabel(auction.finalWinnerId, bidderLabels, auth)}`
                                     : auction.currentBidderId
-                                      ? `Highest bidder: ${auction.currentBidderId}`
+                                      ? `Highest bidder: ${bidderLabel(auction.currentBidderId, bidderLabels, auth)}`
                                       : auction.saleMode === 'BuyNowOnly'
                                         ? 'Immediate purchase closes this auction'
                                         : 'No accepted bidder yet'}
@@ -499,7 +540,7 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                                         {displayedWinner.winnerId.toLowerCase() ===
                                         auth.subjectId?.toLowerCase()
                                             ? 'You won this auction.'
-                                            : `Winner: ${displayedWinner.winnerId}`}
+                                            : `Winner: ${bidderLabel(displayedWinner.winnerId, bidderLabels, auth)}`}
                                     </p>
                                 ) : (
                                     <p>No winner was selected.</p>
@@ -550,7 +591,9 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                                 <ul>
                                     {bids.map((bid) => (
                                         <li key={bid.id}>
-                                            <span>{bid.bidderId}</span>
+                                            <span>
+                                                {bidderLabel(bid.bidderId, bidderLabels, auth)}
+                                            </span>
                                             <strong>{formatMoney(bid.amount)}</strong>
                                             <time>{formatDate(bid.createdAtUtc)}</time>
                                         </li>

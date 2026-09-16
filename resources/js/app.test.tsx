@@ -301,7 +301,30 @@ describe('auction UI', () => {
 
         expect(await screen.findByRole('heading', { name: 'MacBook Pro' })).toBeInTheDocument();
         expect(screen.getAllByText('$1,500').length).toBeGreaterThan(0);
-        expect(screen.getByText('erin')).toBeInTheDocument();
+        expect(screen.getByText('Erin')).toBeInTheDocument();
+    });
+
+    it('auction detail renders server-resolved bidder labels instead of opaque subjects', async () => {
+        const bidderId = '64b29e32-1308-4dba-b533-58ac885fa0be';
+        const resolvedAuction = {
+            ...macBook,
+            currentBidderId: bidderId,
+            currentBidderLabel: 'Bidder Two',
+        };
+        const resolvedBids = [{ ...bids[0], bidderId, bidderLabel: 'Bidder Two' }];
+
+        vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url.endsWith(`/api/auctions/${macBook.id}/bids`)) return json(resolvedBids);
+            if (url.endsWith(`/api/auctions/${macBook.id}`)) return json(resolvedAuction);
+            return json(auctions);
+        });
+
+        renderAt(`/auctions/${macBook.id}`);
+
+        expect(await screen.findByText('Highest bidder: Bidder Two')).toBeInTheDocument();
+        expect(screen.getByText('Bidder Two')).toBeInTheDocument();
+        expect(screen.queryByText(bidderId)).not.toBeInTheDocument();
     });
 
     it('valid bid form submits expected payload and disables while pending', async () => {
@@ -436,9 +459,9 @@ describe('auction UI', () => {
         });
 
         await waitFor(() => expect(screen.getAllByText('$1,700').length).toBeGreaterThan(0));
-        expect(screen.getByText('Highest bidder: bob')).toBeInTheDocument();
+        expect(screen.getByText('Highest bidder: Bob')).toBeInTheDocument();
         expect(screen.getByLabelText('Bid amount')).toHaveValue('1750');
-        expect(screen.getByText('bob bid $1,700')).toBeInTheDocument();
+        expect(screen.getByText('Bob bid $1,700')).toBeInTheDocument();
     });
 
     it('stale live event is ignored', async () => {
@@ -556,7 +579,7 @@ describe('auction UI', () => {
         expect(screen.getByRole('button', { name: 'Auction closed' })).toBeDisabled();
         expect(screen.getByLabelText('Bid amount')).toBeDisabled();
         expect(screen.getByText('Final bid $1,500')).toBeInTheDocument();
-        expect(screen.getAllByText('Winner: erin').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Winner: Erin').length).toBeGreaterThan(0);
     });
 
     it('auction:cancelled preserves history and disables actions without a winner', async () => {
@@ -792,7 +815,7 @@ describe('auction UI', () => {
         });
 
         expect(await screen.findByText('Final price $2,000')).toBeInTheDocument();
-        expect(screen.getAllByText('Winner: buyer-b').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Winner: Buyer B').length).toBeGreaterThan(0);
         expect(screen.getAllByText('$1,500').length).toBeGreaterThan(0);
         expect(screen.queryByRole('button', { name: 'Place bid' })).not.toBeInTheDocument();
     });
@@ -940,7 +963,7 @@ describe('auction UI', () => {
         renderAt(`/auctions/${macBook.id}`);
 
         expect(await screen.findByText('Final bid $1,500')).toBeInTheDocument();
-        expect(screen.getAllByText('Winner: erin').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Winner: Erin').length).toBeGreaterThan(0);
         expect(screen.getByRole('button', { name: 'Auction closed' })).toBeDisabled();
         expect(screen.getAllByText('Closed').length).toBeGreaterThan(0);
         expect(screen.queryByText('Next minimum')).not.toBeInTheDocument();
