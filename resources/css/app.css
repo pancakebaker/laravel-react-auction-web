@@ -227,6 +227,7 @@ button:disabled {
 }
 
 .auction-grid {
+    align-items: stretch;
     display: grid;
     gap: 16px;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -247,7 +248,12 @@ button:disabled {
     display: flex;
     flex-direction: column;
     gap: 18px;
+    height: 100%;
     padding: 20px;
+}
+
+.auction-card .primary-button {
+    margin-top: auto;
 }
 
 .card-row {
