@@ -134,6 +134,16 @@ never receive the Laravel private key. Restart the Bidding Service after
 changing its public key. If Laravel configuration is cached, run
 `php artisan config:clear` and restart Laravel as well.
 
+If the Bidding Service repository is in another location, pass its path. These
+forms are equivalent:
+
+```powershell
+.\scripts\setup-local-bidding-keys.ps1 `
+    -BiddingServicePath "D:\GitHub Projects\dotnet-bidding-service2"
+
+.\scripts\setup-local-bidding-keys.ps1 -BiddingServicePath "D:\GitHub Projects\dotnet-bidding-service2"
+```
+
 Local/demo configuration intentionally keeps
 `BIDDING_SERVICE_CLIENT_ASSERTION_ENABLED=false`; local developers should not
 enable client assertions just to complete setup.
