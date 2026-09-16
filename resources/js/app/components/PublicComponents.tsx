@@ -18,8 +18,34 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </button>
                 <span className="demo-badge">Functional demo</span>
             </header>
-            {children}
+            <div className="app-content">{children}</div>
         </main>
+    );
+}
+
+/**
+ * Covers the public content area while route data is being resolved.
+ */
+export function LoadingOverlay({
+    visible,
+    label = 'Loading auction...',
+}: {
+    visible: boolean;
+    label?: string;
+}) {
+    return (
+        <div
+            aria-busy={visible}
+            aria-hidden={!visible}
+            aria-label={label}
+            className={'loading-overlay' + (visible ? ' is-visible' : '')}
+            role="status"
+        >
+            <div className="loading-overlay-card">
+                <span aria-hidden="true" className="loading-spinner" />
+                <span>{label}</span>
+            </div>
+        </div>
     );
 }
 
