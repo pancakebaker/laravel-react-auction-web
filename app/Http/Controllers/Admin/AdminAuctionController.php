@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Support\AdminNavigation;
 use App\Support\AdminResponse;
 use App\Support\BiddingServiceClient;
+use App\Support\BiddingServiceEndpoints;
+use App\Support\IntegrationHeaders;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +36,7 @@ class AdminAuctionController extends Controller
                 'title', 'description', 'saleMode', 'startingPrice',
                 'minimumBidIncrement', 'buyNowPrice', 'startTimeUtc', 'endTimeUtc',
             ]),
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 
@@ -47,7 +49,7 @@ class AdminAuctionController extends Controller
                 'title', 'description', 'saleMode', 'startingPrice',
                 'minimumBidIncrement', 'buyNowPrice', 'startTimeUtc', 'endTimeUtc', 'version',
             ]),
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 
@@ -56,7 +58,7 @@ class AdminAuctionController extends Controller
         return $client->deleteCommand(
             $request->user(),
             $auction,
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 
@@ -64,9 +66,9 @@ class AdminAuctionController extends Controller
     {
         return $client->postCommand(
             $request->user(),
-            $auction.'/cancel',
+            $auction.'/'.BiddingServiceEndpoints::CANCEL,
             $request->only(['version']),
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 }

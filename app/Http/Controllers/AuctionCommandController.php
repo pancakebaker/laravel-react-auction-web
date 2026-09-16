@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Support\BiddingServiceClient;
+use App\Support\BiddingServiceEndpoints;
+use App\Support\IntegrationHeaders;
 use Illuminate\Http\Request;
 
 class AuctionCommandController extends Controller
@@ -14,9 +16,9 @@ class AuctionCommandController extends Controller
     ) {
         return $client->postCommand(
             $request->user(),
-            $auction.'/bids',
+            $auction.'/'.BiddingServiceEndpoints::BIDS,
             $request->only(['amount']),
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 
@@ -27,9 +29,9 @@ class AuctionCommandController extends Controller
     ) {
         return $client->postCommand(
             $request->user(),
-            $auction.'/buy-now',
+            $auction.'/'.BiddingServiceEndpoints::BUY_NOW,
             [],
-            $request->header('X-Correlation-ID'),
+            $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }
 }

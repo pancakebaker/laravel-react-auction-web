@@ -52,13 +52,20 @@ class BiddingServiceClient
                 ->withToken($token);
             $request = $this->withClientAssertion($request);
             if ($correlationId !== null && trim($correlationId) !== '') {
-                $request = $request->withHeaders(['X-Correlation-ID' => $correlationId]);
+                $request = $request->withHeaders([
+                    IntegrationHeaders::CORRELATION_ID => $correlationId,
+                ]);
             }
-            $upstream = $request->get(rtrim((string) config('bidding_service.url'), '/').'/api/auctions/'.$path);
+            $upstream = $request->get(
+                rtrim((string) config('bidding_service.url'), '/').BiddingServiceEndpoints::AUCTIONS.'/'.$path,
+            );
 
             return response($upstream->body(), $upstream->status())
                 ->header('Content-Type', $upstream->header('Content-Type', 'application/json'))
-                ->header('X-Correlation-ID', $upstream->header('X-Correlation-ID', $correlationId ?? ''));
+                ->header(
+                    IntegrationHeaders::CORRELATION_ID,
+                    $upstream->header(IntegrationHeaders::CORRELATION_ID, $correlationId ?? ''),
+                );
         } catch (Throwable $exception) {
             report($exception);
 
@@ -85,11 +92,13 @@ class BiddingServiceClient
             $request = $this->withClientAssertion($request);
 
             if ($correlationId !== null && trim($correlationId) !== '') {
-                $request = $request->withHeaders(['X-Correlation-ID' => $correlationId]);
+                $request = $request->withHeaders([
+                    IntegrationHeaders::CORRELATION_ID => $correlationId,
+                ]);
             }
 
             $url = rtrim(
-                rtrim((string) config('bidding_service.url'), '/').'/api/auctions/'.$path,
+                rtrim((string) config('bidding_service.url'), '/').BiddingServiceEndpoints::AUCTIONS.'/'.$path,
                 '/',
             );
             $upstream = match ($method) {
@@ -102,8 +111,8 @@ class BiddingServiceClient
             return response($upstream->body(), $upstream->status())
                 ->header('Content-Type', $upstream->header('Content-Type', 'application/json'))
                 ->header(
-                    'X-Correlation-ID',
-                    $upstream->header('X-Correlation-ID', $correlationId ?? ''),
+                    IntegrationHeaders::CORRELATION_ID,
+                    $upstream->header(IntegrationHeaders::CORRELATION_ID, $correlationId ?? ''),
                 );
         } catch (Throwable $exception) {
             report($exception);
