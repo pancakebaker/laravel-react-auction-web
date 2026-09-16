@@ -90,6 +90,31 @@ describe('admin UI', () => {
         expect(screen.getAllByText('Page Updated')[0]).toBeInTheDocument();
     });
 
+    it('provides an accessible responsive sidebar toggle', () => {
+        render(
+            <AdminApp
+                bootstrap={{
+                    page: 'dashboard',
+                    navigation,
+                    props: { metrics: [], recentAuditLogs: [], auditActionCounts: [] },
+                }}
+            />,
+        );
+
+        const toggle = screen.getByRole('button', { name: 'Toggle admin navigation' });
+        const sidebar = screen.getByRole('complementary', { name: 'Admin navigation' });
+
+        expect(toggle).toHaveAttribute('aria-controls', 'admin-sidebar');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(sidebar).not.toHaveClass('is-open');
+
+        fireEvent.click(toggle);
+
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(sidebar).toHaveClass('is-open');
+        expect(screen.getByRole('button', { name: 'Close admin navigation' })).toBeInTheDocument();
+    });
+
     it('renders paginated users from Laravel bootstrap data', () => {
         render(
             <AdminApp

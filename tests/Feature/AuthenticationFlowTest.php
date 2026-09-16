@@ -25,7 +25,11 @@ class AuthenticationFlowTest extends TestCase
             ->assertSee('Sign in')
             ->assertSee('Distributed Bidding Auction Platform')
             ->assertSee('Email')
-            ->assertSee('Password');
+            ->assertSee('Password')
+            ->assertDontSee('Google')
+            ->assertDontSee('Facebook')
+            ->assertDontSee('Create account')
+            ->assertDontSee('Forgot password');
     }
 
     public function test_admin_can_login_and_is_redirected_to_admin(): void

@@ -414,6 +414,11 @@ function shouldInterceptAdminLink(event: React.MouseEvent<HTMLElement>, anchor: 
  */
 export function AdminApp({ bootstrap }: { bootstrap: AdminBootstrap }) {
     const navigation = useAdminNavigation(bootstrap);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [navigation.bootstrap.page]);
 
     return (
         <AdminLayout
@@ -423,6 +428,9 @@ export function AdminApp({ bootstrap }: { bootstrap: AdminBootstrap }) {
             onNavigate={navigation.navigate}
             onRetry={navigation.retry}
             page={navigation.bootstrap.page}
+            sidebarOpen={sidebarOpen}
+            onSidebarToggle={() => setSidebarOpen((open) => !open)}
+            onSidebarClose={() => setSidebarOpen(false)}
         >
             {navigation.bootstrap.page === 'dashboard' && (
                 <DashboardPage {...navigation.bootstrap.props} />
@@ -451,6 +459,9 @@ function AdminLayout({
     onNavigate,
     onRetry,
     page,
+    sidebarOpen,
+    onSidebarToggle,
+    onSidebarClose,
 }: {
     children: React.ReactNode;
     error: string | null;
@@ -459,12 +470,27 @@ function AdminLayout({
     onNavigate: (event: React.MouseEvent<HTMLElement>) => void;
     onRetry: () => void;
     page: AdminPage;
+    sidebarOpen: boolean;
+    onSidebarToggle: () => void;
+    onSidebarClose: () => void;
 }) {
     return (
         <main className="admin-shell" onClickCapture={onNavigate}>
-            <AdminSidebar navigation={navigation} />
+            <AdminSidebar navigation={navigation} onClose={onSidebarClose} open={sidebarOpen} />
+            {sidebarOpen && (
+                <button
+                    aria-label="Close admin navigation"
+                    className="admin-sidebar-backdrop"
+                    onClick={onSidebarClose}
+                    type="button"
+                />
+            )}
             <section aria-busy={loading} aria-label="Admin content" className="admin-main">
-                <AdminHeader page={page} />
+                <AdminHeader
+                    onSidebarToggle={onSidebarToggle}
+                    page={page}
+                    sidebarOpen={sidebarOpen}
+                />
                 {loading && (
                     <div
                         aria-label="Loading admin page"
@@ -482,11 +508,29 @@ function AdminLayout({
         </main>
     );
 }
-function AdminSidebar({ navigation }: { navigation: AdminNavigationItem[] }) {
+function AdminSidebar({
+    navigation,
+    onClose,
+    open,
+}: {
+    navigation: AdminNavigationItem[];
+    onClose: () => void;
+    open: boolean;
+}) {
     return (
-        <aside className="admin-sidebar" aria-label="Admin navigation">
+        <aside
+            className={`admin-sidebar${open ? ' is-open' : ''}`}
+            id="admin-sidebar"
+            aria-label="Admin navigation"
+        >
             <a className="admin-brand" href="/admin">
-                Auction Admin
+                <span aria-hidden="true" className="admin-brand-mark">
+                    DB
+                </span>
+                <span>
+                    <strong>Auction</strong>
+                    <small>Operations</small>
+                </span>
             </a>
             <nav>
                 {navigation.map((item) => (
@@ -494,18 +538,31 @@ function AdminSidebar({ navigation }: { navigation: AdminNavigationItem[] }) {
                         className={item.active ? 'active' : undefined}
                         href={item.href}
                         key={item.href}
+                        onClick={onClose}
                         rel={item.rel}
                         target={item.target}
                     >
+                        <span aria-hidden="true" className="admin-nav-icon">
+                            •
+                        </span>
                         {item.label}
                     </a>
                 ))}
             </nav>
+            <div className="admin-sidebar-footer">Global administration</div>
         </aside>
     );
 }
 
-function AdminHeader({ page }: { page: AdminPage }) {
+function AdminHeader({
+    onSidebarToggle,
+    page,
+    sidebarOpen,
+}: {
+    onSidebarToggle: () => void;
+    page: AdminPage;
+    sidebarOpen: boolean;
+}) {
     const titles: Record<AdminPage, string> = {
         dashboard: 'Dashboard',
         users: 'Users',
@@ -520,7 +577,18 @@ function AdminHeader({ page }: { page: AdminPage }) {
     return (
         <header className="admin-header">
             <div>
-                <p className="eyebrow">Laravel administration</p>
+                <button
+                    aria-controls="admin-sidebar"
+                    aria-expanded={sidebarOpen}
+                    aria-label="Toggle admin navigation"
+                    className="admin-menu-toggle"
+                    onClick={onSidebarToggle}
+                    type="button"
+                >
+                    <span aria-hidden="true">☰</span>
+                    <span>Menu</span>
+                </button>
+                <p className="eyebrow">Administration</p>
                 <h1>{titles[page]}</h1>
             </div>
             <a className="admin-public-link" href="/auctions">
