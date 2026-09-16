@@ -30,7 +30,7 @@ class AuctionCommandController extends Controller
         return $client->postCommand(
             $request->user(),
             $auction.'/'.BiddingServiceEndpoints::BUY_NOW,
-            [],
+            ['bidderId' => null],
             $request->header(IntegrationHeaders::CORRELATION_ID),
         );
     }

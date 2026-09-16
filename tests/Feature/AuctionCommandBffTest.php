@@ -72,7 +72,7 @@ class AuctionCommandBffTest extends TestCase
         $this->assertSame('bff-correlation', $seen->header('X-Correlation-ID')[0]);
     }
 
-    public function test_authenticated_buy_now_proxy_sends_empty_command_body(): void
+    public function test_authenticated_buy_now_proxy_sends_contract_compatible_command_body(): void
     {
         $user = User::factory()->create();
         $seen = null;
@@ -89,7 +89,8 @@ class AuctionCommandBffTest extends TestCase
 
         $response->assertCreated();
         $this->assertNotNull($seen);
-        $this->assertSame([], $seen->data());
+        $this->assertSame('POST', $seen->method());
+        $this->assertSame(['bidderId' => null], $seen->data());
         $this->assertStringStartsWith('Bearer ', (string) $seen->header('Authorization')[0]);
     }
 
