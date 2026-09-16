@@ -246,6 +246,56 @@ describe('auction UI', () => {
         expect(screen.getByText('Gaming Console')).toBeInTheDocument();
     });
 
+    it('keeps the loaded auction list when returning from detail', async () => {
+        const user = userEvent.setup();
+        const fetchMock = vi.mocked(fetch);
+
+        renderAt('/auctions');
+        await screen.findByText('MacBook Pro');
+
+        await user.click(screen.getAllByRole('button', { name: 'View auction' })[0]);
+        expect(await screen.findByRole('heading', { name: 'MacBook Pro' })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Back to auctions' }));
+
+        expect(await screen.findByText('MacBook Pro')).toBeInTheDocument();
+        expect(screen.queryByText('Loading auctions')).not.toBeInTheDocument();
+        expect(
+            fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auctions')).length,
+        ).toBe(1);
+    });
+
+    it('uses a content loading overlay during a route transition', async () => {
+        const user = userEvent.setup();
+        const fetchMock = vi.mocked(fetch);
+        let resolveDetail: ((response: Response) => void) | undefined;
+
+        fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+            const url = String(input);
+            if (url.endsWith(`/api/auctions/${macBook.id}/bids`)) return json(bids);
+            if (url.endsWith(`/api/auctions/${macBook.id}`) && !init?.method) {
+                return new Promise<Response>((resolve) => {
+                    resolveDetail = resolve;
+                });
+            }
+            return json(auctions);
+        });
+
+        renderAt('/auctions');
+        await screen.findByText('MacBook Pro');
+        await user.click(screen.getAllByRole('button', { name: 'View auction' })[0]);
+
+        await waitFor(() =>
+            expect(screen.getByRole('status', { name: 'Loading auction...' })).toBeInTheDocument(),
+        );
+        expect(
+            screen.queryByText('Fetching auction detail and accepted bid history.'),
+        ).not.toBeInTheDocument();
+
+        resolveDetail?.(await json(macBook));
+        expect(await screen.findByRole('heading', { name: 'MacBook Pro' })).toBeInTheDocument();
+    });
+
     it('auction detail renders current bid and bid history', async () => {
         renderAt(`/auctions/${macBook.id}`);
 
@@ -449,6 +499,7 @@ describe('auction UI', () => {
         renderAt(`/auctions/${macBook.id}`);
         await screen.findByRole('heading', { name: 'MacBook Pro' });
 
+        await waitForSocketHandler('connect');
         socketHandlers.get('connect')?.();
 
         expect(emitMock).toHaveBeenCalledWith(liveFeedSocketEvents.subscribe, {

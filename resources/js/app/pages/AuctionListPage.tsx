@@ -1,42 +1,29 @@
 /**
  * Displays the public auction discovery page.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { getAuctions } from '../../api';
 import type { AuctionSummary } from '../../types';
-import { Shell, StateMessage } from '../components/PublicComponents';
+import { StateMessage } from '../components/PublicComponents';
 import { useNow } from '../hooks/useNow';
 import { formatDate, formatMoney, getCountdown, statusTone } from '../utils/auction';
 import { navigateTo } from '../utils/navigation';
 /**
  * Renders auction discovery data from the authoritative API.
  */
-export function AuctionListPage() {
-    const [auctions, setAuctions] = useState<AuctionSummary[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export function AuctionListPage({
+    auctions,
+    error,
+    loading,
+    onRetry,
+}: {
+    auctions: AuctionSummary[];
+    error: string | null;
+    loading: boolean;
+    onRetry: () => Promise<void>;
+}) {
     const now = useNow();
 
-    const loadAuctions = useCallback(() => {
-        setLoading(true);
-        setError(null);
-
-        return getAuctions()
-            .then((items) => {
-                setAuctions(items);
-            })
-            .catch((caught) =>
-                setError(caught instanceof Error ? caught.message : 'Unable to load auctions.'),
-            )
-            .finally(() => setLoading(false));
-    }, []);
-
-    useEffect(() => {
-        void loadAuctions();
-    }, [loadAuctions]);
-
     return (
-        <Shell>
+        <>
             <section className="page-heading">
                 <p className="eyebrow">Auction discovery</p>
                 <h1>Live bidding demo</h1>
@@ -88,11 +75,7 @@ export function AuctionListPage() {
                     <p className="state-message-technical">
                         <span>Technical detail:</span> {error}
                     </p>
-                    <button
-                        className="primary-button"
-                        onClick={() => void loadAuctions()}
-                        type="button"
-                    >
+                    <button className="primary-button" onClick={() => void onRetry()} type="button">
                         Retry
                     </button>
                 </section>
@@ -151,6 +134,6 @@ export function AuctionListPage() {
                     </article>
                 ))}
             </section>
-        </Shell>
+        </>
     );
 }

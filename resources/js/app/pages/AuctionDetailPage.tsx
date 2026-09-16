@@ -6,7 +6,7 @@ import type { FormEvent } from 'react';
 import { ApiClientError, buyNow, getAuction, getAuctionBids, placeBid } from '../../api';
 import { connectAuctionFeed } from '../../liveFeed';
 import type { AuctionDetail, Bid, LiveStatus } from '../../types';
-import { LiveIndicator, Shell, StateMessage } from '../components/PublicComponents';
+import { LiveIndicator, LoadingOverlay, StateMessage } from '../components/PublicComponents';
 import { useNow } from '../hooks/useNow';
 import { navigateTo } from '../utils/navigation';
 import {
@@ -56,6 +56,8 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
     const [liveStatus, setLiveStatus] = useState<LiveStatus>('connecting');
     const [activity, setActivity] = useState<string[]>([]);
     const [winner, setWinner] = useState<WinnerState | null>(null);
+    const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true);
+    const [loadingOverlayVisible, setLoadingOverlayVisible] = useState(false);
     const now = useNow();
     const auth = window.__AUTH_BOOTSTRAP__ ?? {
         authenticated: false,
@@ -64,6 +66,24 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
         isAdmin: false,
     };
     const auctionTenantId = auction?.tenantId;
+
+    useEffect(() => {
+        let showTimer: number | undefined;
+        let hideTimer: number | undefined;
+
+        if (loading) {
+            setLoadingOverlayMounted(true);
+            showTimer = window.setTimeout(() => setLoadingOverlayVisible(true), 150);
+        } else {
+            setLoadingOverlayVisible(false);
+            hideTimer = window.setTimeout(() => setLoadingOverlayMounted(false), 180);
+        }
+
+        return () => {
+            if (showTimer !== undefined) window.clearTimeout(showTimer);
+            if (hideTimer !== undefined) window.clearTimeout(hideTimer);
+        };
+    }, [loading]);
 
     const refresh = () => {
         setLoading(true);
@@ -397,18 +417,13 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
     }
 
     return (
-        <Shell>
+        <>
             <button className="back-button" onClick={() => navigateTo('/auctions')} type="button">
                 Back to auctions
             </button>
 
-            {loading && (
-                <StateMessage
-                    title="Loading auction"
-                    message="Fetching auction detail and accepted bid history."
-                />
-            )}
-            {loadError && (
+            {loadingOverlayMounted && <LoadingOverlay visible={loadingOverlayVisible} />}
+            {loadError && !auction && (
                 <StateMessage title="Auction unavailable" message={loadError} tone="error" />
             )}
 
@@ -689,6 +704,6 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
                     </aside>
                 </section>
             )}
-        </Shell>
+        </>
     );
 }
