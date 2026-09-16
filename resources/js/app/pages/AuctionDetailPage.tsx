@@ -419,7 +419,7 @@ export function AuctionDetailPage({ auctionId }: { auctionId: string }) {
     return (
         <>
             <button className="back-button" onClick={() => navigateTo('/auctions')} type="button">
-                Back to auctions
+                Auctions
             </button>
 
             {loadingOverlayMounted && <LoadingOverlay visible={loadingOverlayVisible} />}

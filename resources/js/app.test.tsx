@@ -256,7 +256,7 @@ describe('auction UI', () => {
         await user.click(screen.getAllByRole('button', { name: 'View auction' })[0]);
         expect(await screen.findByRole('heading', { name: 'MacBook Pro' })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Back to auctions' }));
+        await user.click(screen.getByRole('button', { name: 'Auctions' }));
 
         expect(await screen.findByText('MacBook Pro')).toBeInTheDocument();
         expect(screen.queryByText('Loading auctions')).not.toBeInTheDocument();
