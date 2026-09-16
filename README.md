@@ -116,6 +116,24 @@ issuer, audience, key ID, and TTL values from `.env.example`. This key is not
 needed merely to run Composer, boot Laravel, generate `APP_KEY`, or run local
 migrations. Keep it out of browser/Vite variables and do not commit it.
 
+For a Windows local setup with the sibling Bidding Service repository at
+`D:\GitHub Projects\dotnet-bidding-service`, generate and copy the matching
+key pair with:
+
+```powershell
+.\scripts\setup-local-bidding-keys.ps1
+```
+
+The script stores the private key only at
+`storage/keys/bidding-service-private.pem` and copies the public key to
+`src/bidding-service/keys/bidding-service-public.pem` in the Bidding Service
+repository. It refuses to overwrite existing keys unless `-Force` is supplied.
+This is a local-development convenience, not production key management. The
+Bidding Service verifies Laravel-issued tokens with the public half; it must
+never receive the Laravel private key. Restart the Bidding Service after
+changing its public key. If Laravel configuration is cached, run
+`php artisan config:clear` and restart Laravel as well.
+
 Local/demo configuration intentionally keeps
 `BIDDING_SERVICE_CLIENT_ASSERTION_ENABLED=false`; local developers should not
 enable client assertions just to complete setup.

@@ -4,8 +4,8 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
@@ -59,7 +59,9 @@ class BiddingServiceClient
             return response($upstream->body(), $upstream->status())
                 ->header('Content-Type', $upstream->header('Content-Type', 'application/json'))
                 ->header('X-Correlation-ID', $upstream->header('X-Correlation-ID', $correlationId ?? ''));
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'code' => 'bidding_service_unavailable',
                 'message' => 'The bidding service is temporarily unavailable.',
@@ -103,7 +105,9 @@ class BiddingServiceClient
                     'X-Correlation-ID',
                     $upstream->header('X-Correlation-ID', $correlationId ?? ''),
                 );
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'code' => 'bidding_service_unavailable',
                 'message' => 'The bidding service is temporarily unavailable.',

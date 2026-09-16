@@ -66,7 +66,12 @@ class BiddingServiceTokenIssuer
             throw new RuntimeException('Bidding Service token identity configuration is incomplete.');
         }
 
-        $privateKey = @file_get_contents((string) config('bidding_service.token_private_key_path'));
+        $privateKeyPath = (string) config('bidding_service.token_private_key_path');
+        if (! $this->isAbsolutePath($privateKeyPath)) {
+            $privateKeyPath = base_path($privateKeyPath);
+        }
+
+        $privateKey = @file_get_contents($privateKeyPath);
         if ($privateKey === false || $privateKey === '') {
             throw new RuntimeException('Bidding Service signing key is not configured.');
         }
@@ -114,5 +119,12 @@ class BiddingServiceTokenIssuer
     private function base64UrlEncode(string $value): string
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '\\')
+            || (strlen($path) > 2 && ctype_alpha($path[0]) && $path[1] === ':');
     }
 }
