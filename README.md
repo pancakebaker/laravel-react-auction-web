@@ -243,19 +243,40 @@ Signed-in users can bid or use Buy Now through the Laravel session and CSRF-prot
 
 ## Local demo accounts
 
-The shared `/login` page is used by both bidders and administrators. Local
-development seeders provision these non-admin bidder accounts:
+The shared `/login` page is used by both bidders and administrators. These
+accounts are provisioned by `php artisan migrate --seed` in local/testing
+environments.
+
+### Administrators
+
+The built-in demo administrator uses the following values when the related
+environment variables are unset:
+
+- Email: `admin@example.test`
+- Password: `password`
+- Environment variables: `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`
+
+The `.env.example` also enables a separately configured local administrator:
+
+- Email: `local-admin@example.test`
+- Password: `local-admin-password`
+- Environment variables: `LOCAL_ADMIN_EMAIL`, `LOCAL_ADMIN_PASSWORD`
+
+### Bidders
+
+Local development seeders provision these non-admin bidder accounts:
 
 - `bidder1@example.test`
 - `bidder2@example.test`
 - `bidder3@example.test`
 
 `LocalBidderSeeder` reads `DEMO_BIDDER_PASSWORD`; when it is unset, the
-documented fallback is `bidder-password`. These credentials are for local/demo
-use only. There is no public signup, and production deployments must not rely
-on demo credentials. Bidder login returns to a safe intended auction page when
-available, otherwise it falls back to `/auctions`; admin login falls back to
-`/admin`.
+fallback is `bidder-password`.
+
+These credentials are strictly for local/demo development. Production
+deployments must not rely on them. Public signup remains unavailable. Bidder
+login returns to a safe intended auction page when available, otherwise it
+falls back to `/auctions`; administrator login falls back to `/admin`.
 
 `TENANT_ID` identifies the one tenant represented by this Laravel installation.
 It is a server-side UUID, not a user ID, password, client credential, or
