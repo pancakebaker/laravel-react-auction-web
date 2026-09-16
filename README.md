@@ -41,13 +41,9 @@ For the complete platform experience, the bidding service and live-feed service 
 
 ## Getting Started
 
-Install PHP dependencies:
+### Local/demo configuration
 
-```bash
-composer install
-```
-
-Create the local environment file if it does not already exist:
+Create the local environment file before installing PHP dependencies:
 
 ```bash
 cp .env.example .env
@@ -57,6 +53,17 @@ On Windows PowerShell, you can use:
 
 ```powershell
 Copy-Item .env.example .env
+```
+
+This ordering is intentional. Composer's Laravel package-discovery script
+boots the application during `composer install`, so `.env` must exist first.
+The example file selects the local environment and keeps client-assertion
+issuance disabled for local/demo use.
+
+Install PHP dependencies:
+
+```bash
+composer install
 ```
 
 Generate the Laravel application key:
@@ -100,6 +107,19 @@ Install JavaScript dependencies:
 npm install
 ```
 
+The Laravel application key above is separate from the Bidding Service token
+signing key. When using Bidding-backed auction pages or authenticated commands,
+provision the server-side RSA PEM configured by
+`BIDDING_SERVICE_TOKEN_PRIVATE_KEY_PATH` (default:
+`storage/keys/bidding-service-private.pem`) and configure the matching token
+issuer, audience, key ID, and TTL values from `.env.example`. This key is not
+needed merely to run Composer, boot Laravel, generate `APP_KEY`, or run local
+migrations. Keep it out of browser/Vite variables and do not commit it.
+
+Local/demo configuration intentionally keeps
+`BIDDING_SERVICE_CLIENT_ASSERTION_ENABLED=false`; local developers should not
+enable client assertions just to complete setup.
+
 The main service settings are `BIDDING_SERVICE_URL` and
 `LIVE_FEED_SERVICE_URL` for server-side calls, plus
 `VITE_BIDDING_API_URL` and `VITE_LIVE_FEED_URL` for browser-side reads and
@@ -110,6 +130,23 @@ through Vite variables.
 Each deployment represents one configured tenant. Separate customer domains
 can run separate Laravel installations with different server-side `TENANT_ID`
 values; tenant authority is not selected from arbitrary browser input.
+
+### Production configuration
+
+Before serving production traffic, enable the existing server-side Bidding
+Service client-assertion configuration:
+
+```ini
+BIDDING_SERVICE_CLIENT_ASSERTION_ENABLED=true
+BIDDING_SERVICE_CLIENT_ID=...
+BIDDING_SERVICE_CLIENT_KEY_ID=...
+BIDDING_SERVICE_CLIENT_PRIVATE_KEY_PATH=...
+```
+
+Provision the referenced RSA private key through the deployment secret/key
+management process. Do not commit private keys or expose them through Vite
+variables. `ClientAssertionProductionPolicy` remains enforced; the local
+defaults above are not production settings.
 
 ## Start the Client
 
