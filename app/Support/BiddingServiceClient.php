@@ -76,6 +76,42 @@ class BiddingServiceClient
         }
     }
 
+    public function getActivityReport(int $days = 7, ?string $correlationId = null): Response
+    {
+        try {
+            $token = $this->tokenIssuer->issuePublicRead()['token'];
+            $request = Http::acceptJson()
+                ->timeout((int) config('bidding_service.timeout_seconds', 10))
+                ->withToken($token);
+            $request = $this->withClientAssertion($request);
+            if ($correlationId !== null && trim($correlationId) !== '') {
+                $request = $request->withHeaders([
+                    IntegrationHeaders::CORRELATION_ID => $correlationId,
+                ]);
+            }
+
+            $upstream = $request->get(
+                rtrim((string) config('bidding_service.url'), '/')
+                    .BiddingServiceEndpoints::REPORTING_ACTIVITY,
+                ['days' => $days],
+            );
+
+            return response($upstream->body(), $upstream->status())
+                ->header('Content-Type', $upstream->header('Content-Type', 'application/json'))
+                ->header(
+                    IntegrationHeaders::CORRELATION_ID,
+                    $upstream->header(IntegrationHeaders::CORRELATION_ID, $correlationId ?? ''),
+                );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'code' => 'bidding_service_unavailable',
+                'message' => 'The bidding service is temporarily unavailable.',
+            ], 503);
+        }
+    }
+
     /** @param array<string, mixed> $payload */
     private function requestCommand(
         User $user,

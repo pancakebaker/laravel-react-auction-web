@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Faq;
 use App\Models\Page;
 use App\Models\User;
+use App\Support\BiddingServiceClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -49,6 +50,18 @@ class AdminDashboardTest extends TestCase
         ]);
 
         $admin = User::factory()->admin()->create();
+        $this->mock(BiddingServiceClient::class, function ($mock): void {
+            $mock->shouldReceive('getActivityReport')
+                ->once()
+                ->with(7, null)
+                ->andReturn(response()->json([
+                    'from' => '2026-09-10',
+                    'to' => '2026-09-16',
+                    'days' => 7,
+                    'bids' => [['date' => '2026-09-10', 'count' => 4]],
+                    'purchases' => [['date' => '2026-09-10', 'count' => 2]],
+                ]));
+        });
         User::factory()->create();
         Page::factory()->published()->create(['created_by' => $admin->id, 'updated_by' => $admin->id]);
         Page::factory()->create(['status' => PageStatus::Draft, 'created_by' => $admin->id, 'updated_by' => $admin->id]);
@@ -75,6 +88,8 @@ class AdminDashboardTest extends TestCase
         ], $bootstrap['props']['metrics']);
         $this->assertSame('Page Updated', $bootstrap['props']['auditActionCounts'][0]['label']);
         $this->assertSame('page.updated', $bootstrap['props']['recentAuditLogs'][0]['action']);
+        $this->assertSame(7, $bootstrap['props']['activityReport']['days']);
+        $this->assertSame(4, $bootstrap['props']['activityReport']['bids'][0]['count']);
 
         $response->assertDontSee('phase13-sensitive-test-key');
         $response->assertDontSee('phase13-sensitive-database-path');

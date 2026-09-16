@@ -21,7 +21,7 @@ class AdminBootstrapData
      *
      * @return array<string, mixed>
      */
-    public static function dashboard(): array
+    public static function dashboard(BiddingServiceClient $biddingService, ?string $correlationId = null): array
     {
         $pageCounts = DB::table('pages')
             ->select('status', DB::raw('count(*) as total'))
@@ -67,7 +67,62 @@ class AdminBootstrapData
                 ],
                 'recentAuditLogs' => $recentAuditLogs,
                 'auditActionCounts' => $auditActionCounts,
+                'activityReport' => self::activityReport($biddingService, $correlationId),
             ],
+        ];
+    }
+
+    /**
+     * Build a safe dashboard activity payload without exposing upstream details.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function activityReport(
+        BiddingServiceClient $biddingService,
+        ?string $correlationId,
+    ): ?array {
+        $response = $biddingService->getActivityReport(7, $correlationId);
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+            return null;
+        }
+
+        $payload = json_decode((string) $response->getContent(), true);
+        if (! is_array($payload)
+            || ! is_string($payload['from'] ?? null)
+            || ! is_string($payload['to'] ?? null)
+            || (int) ($payload['days'] ?? 0) !== 7
+        ) {
+            return null;
+        }
+
+        $series = [];
+        foreach (['bids', 'purchases'] as $key) {
+            if (! is_array($payload[$key] ?? null)) {
+                return null;
+            }
+
+            $series[$key] = [];
+            foreach ($payload[$key] as $point) {
+                if (! is_array($point)
+                    || ! is_string($point['date'] ?? null)
+                    || ! is_int($point['count'] ?? null)
+                    || $point['count'] < 0
+                ) {
+                    return null;
+                }
+                $series[$key][] = [
+                    'date' => $point['date'],
+                    'count' => $point['count'],
+                ];
+            }
+        }
+
+        return [
+            'from' => $payload['from'],
+            'to' => $payload['to'],
+            'days' => 7,
+            'bids' => $series['bids'],
+            'purchases' => $series['purchases'],
         ];
     }
 

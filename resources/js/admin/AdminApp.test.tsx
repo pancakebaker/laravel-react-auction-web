@@ -1,7 +1,7 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { AdminApp, useAdminPagination } from './AdminApp';
+import { AdminApp, formatActivityDate, useAdminPagination } from './AdminApp';
 
 const navigation = [
     { label: 'Dashboard', href: '/admin', active: false },
@@ -78,6 +78,19 @@ describe('admin UI', () => {
                         auditActionCounts: [
                             { action: 'page.updated', label: 'Page Updated', total: 3 },
                         ],
+                        activityReport: {
+                            from: '2026-09-10',
+                            to: '2026-09-16',
+                            days: 7,
+                            bids: Array.from({ length: 7 }, (_, index) => ({
+                                date: `2026-09-${String(index + 10).padStart(2, '0')}`,
+                                count: index,
+                            })),
+                            purchases: Array.from({ length: 7 }, (_, index) => ({
+                                date: `2026-09-${String(index + 10).padStart(2, '0')}`,
+                                count: index === 0 ? 0 : 1,
+                            })),
+                        },
                     },
                 }}
             />,
@@ -85,6 +98,10 @@ describe('admin UI', () => {
 
         expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'System Information' })).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'Purchases — Last 7 Days' }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Bids — Last 7 Days' })).toBeInTheDocument();
         expect(screen.getByText('local')).toBeInTheDocument();
         expect(screen.queryByText('Runtime')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();
@@ -105,6 +122,10 @@ describe('admin UI', () => {
         );
         expect(screen.getByText('Recent CMS changes')).toBeInTheDocument();
         expect(screen.getAllByText('Page Updated')[0]).toBeInTheDocument();
+    });
+
+    it('formats activity dates as calendar dates without timezone shifting', () => {
+        expect(formatActivityDate('2026-09-10')).toMatch(/Sep 10|10 Sept/);
     });
 
     it('provides an accessible responsive sidebar toggle', () => {

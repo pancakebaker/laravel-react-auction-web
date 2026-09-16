@@ -4,6 +4,15 @@
 import React, { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { createRoot } from 'react-dom/client';
+import {
+    CartesianGrid,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import { AuctionManagementPage } from './AuctionManagementPage';
 
 type AdminPage =
@@ -33,6 +42,19 @@ type AuditActionCount = {
     action: string;
     label: string;
     total: number;
+};
+
+type ActivityPoint = {
+    date: string;
+    count: number;
+};
+
+type ActivityReport = {
+    from: string;
+    to: string;
+    days: number;
+    bids: ActivityPoint[];
+    purchases: ActivityPoint[];
 };
 
 type AuditLogRow = {
@@ -128,6 +150,7 @@ type DashboardBootstrap = {
         metrics: DashboardMetric[];
         recentAuditLogs: AuditLogRow[];
         auditActionCounts: AuditActionCount[];
+        activityReport?: ActivityReport | null;
     };
 };
 
@@ -627,10 +650,12 @@ function NavigationError({ message, onRetry }: { message: string; onRetry: () =>
 }
 function DashboardPage({
     auditActionCounts,
+    activityReport,
     metrics,
     recentAuditLogs,
 }: {
     auditActionCounts: AuditActionCount[];
+    activityReport?: ActivityReport | null;
     metrics: DashboardMetric[];
     recentAuditLogs: AuditLogRow[];
 }) {
@@ -656,12 +681,99 @@ function DashboardPage({
                 ))}
             </section>
             <SystemInformation metrics={systemMetrics} />
+            <ActivityCharts report={activityReport ?? null} />
             <section className="admin-dashboard-grid">
                 <AuditSummary title="Recent CMS changes" rows={recentAuditLogs} />
                 <ActionCounts counts={auditActionCounts} />
             </section>
         </>
     );
+}
+
+function ActivityCharts({ report }: { report: ActivityReport | null }) {
+    return (
+        <section className="admin-activity-grid" aria-label="Auction activity">
+            <ActivityLineChart
+                color="#237a52"
+                data={report?.purchases ?? null}
+                description="All completed purchase events across auctions."
+                title="Purchases — Last 7 Days"
+            />
+            <ActivityLineChart
+                color="#4361a8"
+                data={report?.bids ?? null}
+                description="Accepted bids across auctions."
+                title="Bids — Last 7 Days"
+            />
+        </section>
+    );
+}
+
+function ActivityLineChart({
+    color,
+    data,
+    description,
+    title,
+}: {
+    color: string;
+    data: ActivityPoint[] | null;
+    description: string;
+    title: string;
+}) {
+    const chartData = data?.map((point) => ({ ...point, label: formatActivityDate(point.date) }));
+
+    return (
+        <article className="admin-panel admin-activity-panel">
+            <div className="admin-panel-header">
+                <div>
+                    <p>Activity</p>
+                    <h2>{title}</h2>
+                    <span className="admin-panel-description">{description}</span>
+                </div>
+            </div>
+            <div className="admin-activity-chart" aria-label={description}>
+                {chartData ? (
+                    <ResponsiveContainer height="100%" width="100%">
+                        <LineChart
+                            data={chartData}
+                            margin={{ top: 10, right: 14, bottom: 4, left: -16 }}
+                        >
+                            <CartesianGrid stroke="#e2e9e4" strokeDasharray="3 3" />
+                            <XAxis dataKey="label" tick={{ fill: '#68786f', fontSize: 12 }} />
+                            <YAxis allowDecimals={false} tick={{ fill: '#68786f', fontSize: 12 }} />
+                            <Tooltip />
+                            <Line
+                                dataKey="count"
+                                dot={{ fill: color, r: 3 }}
+                                isAnimationActive={false}
+                                name={title.replace(' — Last 7 Days', '')}
+                                stroke={color}
+                                strokeWidth={2.5}
+                                type="monotone"
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <p className="admin-activity-unavailable">Activity data unavailable.</p>
+                )}
+            </div>
+        </article>
+    );
+}
+
+/** Format a UTC date-only API value without applying a local timezone shift. */
+export function formatActivityDate(value: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) {
+        return value;
+    }
+
+    const [, year, month, day] = match;
+    return new Intl.DateTimeFormat(undefined, {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))));
 }
 
 const systemMetricLabels = new Set(['Environment', 'Database', 'Cache', 'Queue']);
