@@ -155,12 +155,18 @@ Socket.IO. `TENANT_ID` identifies the tenant represented by this Laravel
 installation. Keep signing key paths server-side and do not expose credentials
 through Vite variables.
 
+Use `http://localhost:8000` consistently when running this client with Live
+Feed at `http://localhost:3001`. Mixing `127.0.0.1` and `localhost` changes
+the browser origin and host-only cookie context and can prevent the
+credentialed Live Feed handoff or Socket.IO session from working.
+
 Laravel admin access to the Live Feed service uses a separate short-lived
 SystemAdministrator assertion. Configure `LIVE_FEED_ADMIN_ISSUER`,
 `LIVE_FEED_ADMIN_AUDIENCE`, `LIVE_FEED_ADMIN_KEY_ID`,
-`LIVE_FEED_ADMIN_PRIVATE_KEY_PATH`, and the short `LIVE_FEED_ADMIN_TTL_SECONDS`
-value from `.env.example`; these settings are deliberately separate from the
-Bidding Service JWT issuer. The private key is kept only by Laravel at
+`LIVE_FEED_ADMIN_PRIVATE_KEY_PATH`, the short `LIVE_FEED_ADMIN_TTL_SECONDS`,
+and `LIVE_FEED_ADMIN_TIMEOUT_SECONDS` values from `.env.example`; these
+settings are deliberately separate from the Bidding Service JWT issuer. The
+private key is kept only by Laravel at
 `storage/keys/system-admin-private.pem`. The matching public key must be
 provisioned in the Live Feed repository at its configured
 `config/system-admin-public.pem` path (or its equivalent `kid=path` registry).
@@ -173,6 +179,53 @@ handoff URL; Node issues the cookie. This prerequisite does not yet subscribe
 the dashboard to admin activity events. Production deployments must provision
 the matching public key and private key through their secret/key-management
 process rather than relying on local development values.
+
+The dedicated assertion uses `RS256`, issuer `dbap-system-admin`, audience
+`live-feed-admin`, key ID `system-admin-development-1`, role
+`SystemAdministrator`, permission `livefeed.admin`, a trusted `tenant_id`
+when applicable, and a 120-second TTL. These claims are not the Bidding
+Service token claims and must not be configured through the Bidding Service
+issuer settings.
+
+For local Live Feed access, generate the dedicated 3072-bit RSA private key
+only if it does not already exist, then derive the public half for Node:
+
+```powershell
+$laravelKeyDir = "storage/keys"
+$laravelPrivate = "$laravelKeyDir/system-admin-private.pem"
+$nodePublic = "..\nodejs-live-feed\config\system-admin-public.pem"
+New-Item -ItemType Directory -Path $laravelKeyDir -Force | Out-Null
+if (-not (Test-Path $laravelPrivate)) {
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out $laravelPrivate
+}
+New-Item -ItemType Directory -Path (Split-Path -Parent $nodePublic) -Force | Out-Null
+openssl pkey -in $laravelPrivate -pubout -out $nodePublic
+```
+
+The private file is ignored under `storage/keys/`; keep it Laravel-side only.
+Node must be restarted after its public key changes. The browser uses the
+returned handoff URL with `mode=fetch` and credentials so Node can set its
+HttpOnly cookie; no iframe, JWT, or cookie value is exposed to React.
+
+The admin dashboard's activity charts use the Bidding Service
+`GET /api/reporting/activity?days=7` snapshot and then consume the authorized
+Live Feed `admin:activity:delta` stream. `BidAccepted` increments Bids and
+`AuctionPurchased` increments Purchases. Purchases include explicit Buy Now
+and threshold-triggered purchase completions. Both use UTC calendar-day
+buckets, event IDs are deduplicated in memory, and reconnects re-fetch the
+authoritative snapshot through `GET /admin/activity-report`. The dashboard
+remains usable with snapshot data if Live Feed is unavailable.
+
+The reporting refresh route is authenticated and admin-only:
+`GET /admin/activity-report`. It returns the same sanitized seven-day report
+and responds with `503 Activity data unavailable.` when the Bidding Service
+cannot be reached. The browser never calls the Bidding Service directly.
+
+Bidder IDs from the Bidding Service remain opaque. Laravel's presentation
+layer resolves public bidder labels from local identity data in this order:
+display name, a masked email when available, then a shortened bidder ID. Full
+email addresses and bidder profile data are not added to Bidding contracts or
+Live Feed events.
 
 Each deployment represents one configured tenant. Separate customer domains
 can run separate Laravel installations with different server-side `TENANT_ID`
@@ -212,7 +265,7 @@ npm run dev
 Then open the local Laravel URL shown by `php artisan serve`, typically:
 
 ```text
-http://127.0.0.1:8000
+http://localhost:8000
 ```
 
 ## Production Build
@@ -286,7 +339,7 @@ Laravel owns bidder and tenant-admin identity for the tenant configured by the s
 
 ### Authenticated auction commands
 
-Signed-in users can bid or use Buy Now through the Laravel session and CSRF-protected BFF. The Bidding Service validates the Laravel-issued token and derives `BidderId`/`FinalWinnerId` from the token `sub`; browser payloads contain only the bid amount or an empty Buy Now command. Seeded local bidder accounts are provisioned for development, and public signup is intentionally unavailable. The HTTP auction read API remains the recovery authority after stale or missed live updates.
+Signed-in users can bid or use Buy Now through the Laravel session and CSRF-protected BFF. The Bidding Service validates the Laravel-issued token and derives `BidderId`/`FinalWinnerId` from the token `sub`; Buy Now is a `POST /api/auctions/{auction}/buy-now` request with the compatibility JSON object `{"bidderId":null}`. That field is ignored for identity; the authenticated JWT remains authoritative. Seeded local bidder accounts are provisioned for development, and public signup is intentionally unavailable. The HTTP auction read API remains the recovery authority after stale or missed live updates.
 
 ## Local demo accounts
 
