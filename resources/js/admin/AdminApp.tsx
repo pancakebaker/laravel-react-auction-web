@@ -14,6 +14,8 @@ import {
     YAxis,
 } from 'recharts';
 import { AuctionManagementPage } from './AuctionManagementPage';
+import { formatActivityDate, type ActivityReport } from './adminActivityLiveFeed';
+import { useAdminActivityLiveUpdates } from './useAdminActivityLiveUpdates';
 
 type AdminPage =
     | 'dashboard'
@@ -44,18 +46,7 @@ type AuditActionCount = {
     total: number;
 };
 
-type ActivityPoint = {
-    date: string;
-    count: number;
-};
-
-type ActivityReport = {
-    from: string;
-    to: string;
-    days: number;
-    bids: ActivityPoint[];
-    purchases: ActivityPoint[];
-};
+type ActivityPoint = ActivityReport['bids'][number];
 
 type AuditLogRow = {
     id: number;
@@ -661,6 +652,7 @@ function DashboardPage({
 }) {
     const primaryMetrics = metrics.filter((metric) => !isSystemMetric(metric.label));
     const systemMetrics = metrics.filter((metric) => isSystemMetric(metric.label));
+    const liveActivity = useAdminActivityLiveUpdates(activityReport ?? null);
 
     return (
         <>
@@ -681,7 +673,7 @@ function DashboardPage({
                 ))}
             </section>
             <SystemInformation metrics={systemMetrics} />
-            <ActivityCharts report={activityReport ?? null} />
+            <ActivityCharts report={liveActivity.report} status={liveActivity.status} />
             <section className="admin-dashboard-grid">
                 <AuditSummary title="Recent CMS changes" rows={recentAuditLogs} />
                 <ActionCounts counts={auditActionCounts} />
@@ -690,20 +682,35 @@ function DashboardPage({
     );
 }
 
-function ActivityCharts({ report }: { report: ActivityReport | null }) {
+function ActivityCharts({
+    report,
+    status,
+}: {
+    report: ActivityReport | null;
+    status: 'connecting' | 'live' | 'reconnecting' | 'offline';
+}) {
     return (
         <section className="admin-activity-grid" aria-label="Auction activity">
+            <span className={`admin-activity-live-status is-${status}`} role="status">
+                {status === 'live'
+                    ? 'Live'
+                    : status === 'reconnecting'
+                      ? 'Reconnecting'
+                      : status === 'connecting'
+                        ? 'Connecting'
+                        : 'Offline'}
+            </span>
             <ActivityLineChart
                 color="#237a52"
                 data={report?.purchases ?? null}
                 description="All completed purchase events across auctions."
-                title="Purchases — Last 7 Days"
+                title="Purchases"
             />
             <ActivityLineChart
                 color="#4361a8"
                 data={report?.bids ?? null}
                 description="Accepted bids across auctions."
-                title="Bids — Last 7 Days"
+                title="Bids"
             />
         </section>
     );
@@ -761,20 +768,7 @@ function ActivityLineChart({
     );
 }
 
-/** Format a UTC date-only API value without applying a local timezone shift. */
-export function formatActivityDate(value: string): string {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match) {
-        return value;
-    }
-
-    const [, year, month, day] = match;
-    return new Intl.DateTimeFormat(undefined, {
-        day: 'numeric',
-        month: 'short',
-        timeZone: 'UTC',
-    }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))));
-}
+export { formatActivityDate } from './adminActivityLiveFeed';
 
 const systemMetricLabels = new Set(['Environment', 'Database', 'Cache', 'Queue']);
 

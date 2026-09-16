@@ -98,10 +98,8 @@ describe('admin UI', () => {
 
         expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'System Information' })).toBeInTheDocument();
-        expect(
-            screen.getByRole('heading', { name: 'Purchases — Last 7 Days' }),
-        ).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Bids — Last 7 Days' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Purchases' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Bids' })).toBeInTheDocument();
         expect(screen.getByText('local')).toBeInTheDocument();
         expect(screen.queryByText('Runtime')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument();

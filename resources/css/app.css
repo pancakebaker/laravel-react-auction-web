@@ -1212,20 +1212,29 @@ button:disabled {
     align-items: center;
     display: flex;
     flex: 1;
-    gap: 15px;
+    justify-content: flex-end;
     min-height: 96px;
+    overflow: hidden;
     padding: 20px 22px;
+    position: relative;
     width: 100%;
 }
 
 .admin-metric-icon {
-    align-items: center;
-    background: rgba(255, 255, 255, 0.72);
-    border-radius: 11px;
-    display: inline-flex;
-    flex: 0 0 42px;
-    height: 42px;
-    justify-content: center;
+    color: rgba(35, 122, 82, 0.22);
+    height: 88px;
+    left: 12px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 88px;
+    z-index: 0;
+}
+
+.admin-metric-icon svg {
+    height: 100%;
+    width: 100%;
 }
 
 .admin-metric-body strong {
@@ -1233,6 +1242,9 @@ button:disabled {
     font-size: clamp(26px, 2.5vw, 32px);
     line-height: 1;
     overflow-wrap: anywhere;
+    position: relative;
+    text-align: right;
+    z-index: 2;
 }
 
 .admin-metric-label {
@@ -1245,6 +1257,8 @@ button:disabled {
     padding: 11px 16px;
     text-transform: none;
     width: 100%;
+    position: relative;
+    z-index: 3;
 }
 
 .admin-metric-blue { background: #e8f1fb; border-color: #c9ddf1; }
@@ -1728,9 +1742,25 @@ button:disabled {
 }
 
 .admin-activity-grid {
+    position: relative;
     display: grid;
     gap: 18px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-activity-live-status {
+    color: var(--admin-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    position: absolute;
+    right: 4px;
+    text-transform: uppercase;
+    top: -18px;
+}
+
+.admin-activity-live-status.is-live {
+    color: var(--admin-primary-dark);
 }
 
 .admin-activity-panel {
