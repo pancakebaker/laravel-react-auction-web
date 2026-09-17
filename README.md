@@ -8,6 +8,123 @@ repository from the original split-source monorepo.
 
 It is built with **Laravel**, **Vite**, **React**, and **TypeScript** and provides the user-facing auction experience. The client communicates with the platform services to display auction state, place bids, and receive live auction updates.
 
+## Quick local setup
+
+This quick start gets the Laravel/React demo running locally using the default
+development configuration.
+
+### 1. Start the required platform services
+
+For the full auction workflow, start the shared development infrastructure from
+the [DBAP Platform Infrastructure](https://github.com/pancakebaker/docker-dbap-platform)
+repository, then start the
+[.NET Bidding Service](https://github.com/pancakebaker/dotnet-bidding-service).
+
+Start the [Node.js Live Feed](https://github.com/pancakebaker/nodejs-live-feed)
+as well when you want real-time auction updates and live admin activity.
+
+With the default local setup, this application expects:
+
+```text
+Laravel/React:  http://localhost:8000
+Bidding API:    http://localhost:5000
+Live Feed:      http://localhost:3001
+```
+
+Use `localhost` consistently for Laravel and Live Feed. Do not mix
+`127.0.0.1` and `localhost` for the credentialed Live Feed browser flow.
+
+### 2. Create the local environment before Composer
+
+From this repository root:
+
+```powershell
+Copy-Item .env.example .env
+composer install
+php artisan key:generate
+```
+
+Creating `.env` first is intentional because Composer package discovery boots
+Laravel during installation.
+
+### 3. Create and seed the local SQLite database
+
+```powershell
+New-Item -ItemType File -Path database/database.sqlite -Force
+php artisan migrate --seed
+```
+
+The seeders create the demo administrator, bidder accounts, CMS pages, and FAQs.
+
+### 4. Install frontend dependencies
+
+```powershell
+npm install
+```
+
+### 5. Provision the Laravel -> Bidding signing key
+
+For authenticated bidding and Buy Now commands, provision the local RSA key pair
+with the included helper:
+
+```powershell
+.\scripts\setup-local-bidding-keys.ps1
+```
+
+Laravel keeps the private key locally at
+`storage/keys/bidding-service-private.pem`; the Bidding Service receives only
+the matching public key. Both are local development artifacts and private key
+material must never be committed.
+
+If the Bidding repository is not a sibling at the default path, see
+[Detailed local setup](#detailed-local-setup) for the override option.
+
+### 6. Start Laravel and Vite
+
+In one terminal:
+
+```powershell
+php artisan serve --host=localhost --port=8000
+```
+
+In another:
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:8000
+```
+
+### 7. Sign in with a demo account
+
+Administrator:
+
+```text
+admin@example.test
+password
+```
+
+Bidder:
+
+```text
+bidder1@example.test
+bidder-password
+```
+
+Additional seeded accounts and local configuration details are listed under
+[Local demo accounts](#local-demo-accounts).
+
+### Optional: enable admin Live Feed handoff
+
+The admin dashboard's live activity channel uses a separate Laravel -> Live Feed
+SystemAdministrator key pair. Follow the
+[Live Feed administrator key setup](#live-feed-administrator-key-setup) section
+when you want the dashboard to receive real-time activity updates.
+
 ## What the Client Does
 
 The client is responsible for:
@@ -19,7 +136,8 @@ The client is responsible for:
 - Preventing the browser from regressing to older auction state
 - Providing the demo/live-auction experience for the platform
 
-The client does not own auction business rules. Bid validation, concurrency control, persistence, event publishing, and auction scheduling are handled by the backend services.
+The client does not own auction business rules. Bid validation, concurrency control,
+persistence, event publishing, and auction scheduling are handled by the backend services.
 
 ## Tech Stack
 
@@ -39,7 +157,7 @@ Before starting the client, make sure you have:
 
 For the complete platform experience, the bidding service and live-feed service should be available. RabbitMQ and Redis are also used by the platform's event-driven infrastructure.
 
-## Getting Started
+## Detailed local setup
 
 ### Local/demo configuration
 
@@ -160,6 +278,8 @@ Feed at `http://localhost:3001`. Mixing `127.0.0.1` and `localhost` changes
 the browser origin and host-only cookie context and can prevent the
 credentialed Live Feed handoff or Socket.IO session from working.
 
+### Live Feed administrator key setup
+
 Laravel admin access to the Live Feed service uses a separate short-lived
 SystemAdministrator assertion. Configure `LIVE_FEED_ADMIN_ISSUER`,
 `LIVE_FEED_ADMIN_AUDIENCE`, `LIVE_FEED_ADMIN_KEY_ID`,
@@ -172,13 +292,15 @@ provisioned in the Live Feed repository at its configured
 `config/system-admin-public.pem` path (or its equivalent `kid=path` registry).
 Never copy or commit the Laravel private key.
 
-An authenticated Laravel administrator can establish the Node-owned
+An authenticated Laravel administrator establishes the Node-owned
 `live_feed_admin` HttpOnly session through `POST /admin/live-feed/session`.
 Laravel performs the token exchange server-side and returns only a safe browser
-handoff URL; Node issues the cookie. This prerequisite does not yet subscribe
-the dashboard to admin activity events. Production deployments must provision
-the matching public key and private key through their secret/key-management
-process rather than relying on local development values.
+handoff URL; Node issues the cookie. After the handoff succeeds, the dashboard
+connects to Socket.IO with credentials, subscribes to the authorized admin
+activity channel, applies live deltas, and re-fetches the authoritative activity
+snapshot after reconnect. Production deployments must provision the matching
+public and private key material through their secret/key-management process
+rather than relying on local development values.
 
 The dedicated assertion uses `RS256`, issuer `dbap-system-admin`, audience
 `live-feed-admin`, key ID `system-admin-development-1`, role
@@ -248,7 +370,7 @@ management process. Do not commit private keys or expose them through Vite
 variables. `ClientAssertionProductionPolicy` remains enforced; the local
 defaults above are not production settings.
 
-## Start the Client
+## Running the client
 
 Start Laravel:
 
@@ -332,8 +454,8 @@ The client is part of a larger distributed auction platform that includes:
 - **Bidding Service** — validates and accepts bids and owns bid state transitions
 - **Live Feed Service** — consumes auction events and broadcasts live updates to connected clients
 - **Auction Operations Portal** — separate operations UI and service boundary
-- **Auction Scheduler** — separate backend lifecycle service
-- **Outbox Publisher** — separate event transport service
+- **Auction Scheduler** — Bidding-repository worker that closes eligible expired auctions
+- **Outbox Publisher** — Bidding-repository worker that publishes durable outbox events
 
 Laravel owns bidder and tenant-admin identity for the tenant configured by the server-side `TENANT_ID` value. Authenticated bid, Buy Now, and tenant auction-management commands use same-origin Laravel routes, which mint short-lived RS256 Bidding Service tokens server-side and proxy the commands. Those tokens carry the authenticated user's trusted `tenant_id`; the browser never chooses or stores tenant authority or downstream tokens. Public auction reads and Socket.IO events remain anonymous. Authoritative auction state, bid validation, concurrency, persistence, and event publishing remain owned by the Bidding Service. Real-time updates are received from the external Live Feed service.
 
